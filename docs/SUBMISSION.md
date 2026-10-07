@@ -7,11 +7,12 @@ Judging criteria Colosseum publishes: functionality, potential impact, novelty, 
 
 ## Checklist
 
+- [x] Deployed to Cloudflare: https://rughawk.plain-forest-6a44.workers.dev (Vectorize, secrets, AI Search playbook done)
+- [x] Feed and Scam DNA seeded with 28 real launches
 - [ ] Buy `rughawk.com`, `rughawk.app`, `rughawk.dev` on Spaceship (verified available 2026-10-07: $8.88 + $6.21 + $6.21 first year)
-- [ ] Point the domains' nameservers to Cloudflare, uncomment `routes` in `wrangler.jsonc`
-- [ ] `npx wrangler login && ./scripts/setup-cloudflare.sh` (Vectorize, secrets, deploy, AI Search playbook)
-- [ ] Dashboard: create AI Gateway `rughawk-ai`; enable Guardrails and a daily spend limit
-- [ ] Scan 30 to 50 fresh pump.fun launches to seed the feed and the Scam DNA index
+- [ ] Add rughawk.com to Cloudflare, uncomment `routes` in `wrangler.jsonc`, set `NEXT_PUBLIC_APP_URL` (wrangler.jsonc + .env.production) to https://rughawk.com, `npm run deploy`
+- [ ] Dashboard: create AI Gateway `rughawk-ai` (Guardrails incl. Prompt Injection P1, daily spend limit), then set `AI_GATEWAY_ID` to it
+- [ ] Optional: load AI Gateway credits and set `WEB_SEARCH=on` for copilot web intel
 - [ ] Record the pitch video (3 min max) and the technical demo video
 - [ ] Make the GitHub repo public (open source is a judging criterion)
 - [ ] Submit on the Arena with: repo, live URL, both videos, X handle
@@ -30,7 +31,7 @@ Judging criteria Colosseum publishes: functionality, potential impact, novelty, 
 2. Terminal: `npm run scan -- token <fresh mint>`: show the RPC call count and timing.
 3. The hard part: a hot launch with thousands of transactions. Show the creator discovered from the pump.fun bonding curve (offset 49), the fee-sharing PDA hop, the `getBlock` read of the launch slot.
 4. Context-aware scoring: PYUSD (permanent delegate expected for a regulated issuer), BONK (exchange custody recognised).
-5. AI layer: verdict JSON schema, Prompt Guard blocking an injection in the copilot, Scam DNA match, Browser Run screenshot of a token site, Aura voice verdict.
+5. AI layer: verdict JSON schema, the copilot refusing an injection attempt, Scam DNA neighbours in Vectorize, Browser Run screenshot of a token site, Aura voice verdict.
 6. Shield: build and sign a Revoke + CloseAccount transaction; show the rent coming back.
 7. Security: endpoint tokens as secrets, method-allowlisted RPC relay, edge rate limits, image proxy that hides user IPs.
 

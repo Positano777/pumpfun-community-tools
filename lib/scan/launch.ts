@@ -157,11 +157,11 @@ export async function analyzeLaunch(ctx: ScanContext, input: LaunchInput, hints:
       young
         ? {
             id: 'LAUNCH_NOT_LOCATED',
-            severity: 'info',
+            severity: 'medium',
             category: 'launch',
-            title: 'Creation transaction not located',
-            detail: 'A young token with heavy early volume; its creator could not be identified from on-chain state, so bundle and dev-sell checks were skipped.',
-            weight: 0,
+            title: 'Launch forensics could not be completed',
+            detail: 'A young token with heavy early volume whose creation transaction could not be located, so bundle and dev-sell checks did not run. Treat it as unverified, not as clean.',
+            weight: 12,
           }
         : {
             id: 'LAUNCH_WINDOW_PASSED',
@@ -181,7 +181,17 @@ async function findCreation(
   candidate: string,
   approxTime: number | null,
 ): Promise<{ found: { signature: string; tx: ParsedTx; creatorSigs: SignatureInfo[] } | null; sigs: SignatureInfo[] }> {
-  const sigs = await ctx.rpc.call<SignatureInfo[]>('getSignaturesForAddress', [candidate, { limit: 1000, commitment: 'confirmed' }]);
+  // Busy creators (bots) keep trading after launch, so page back until the
+  // history reaches the launch window or three pages are spent.
+  const sigs: SignatureInfo[] = [];
+  let before: string | undefined;
+  for (let page = 0; page < 3; page++) {
+    const batch = await ctx.rpc.call<SignatureInfo[]>('getSignaturesForAddress', [candidate, { limit: 1000, commitment: 'confirmed', ...(before ? { before } : {}) }]);
+    sigs.push(...batch);
+    const oldest = batch[batch.length - 1]?.blockTime ?? null;
+    if (batch.length < 1000 || !approxTime || (oldest !== null && oldest < approxTime - 900)) break;
+    before = batch[batch.length - 1].signature;
+  }
   let pool = sigs.filter((s) => !s.err && s.blockTime);
   if (approxTime) {
     pool = pool
@@ -190,7 +200,7 @@ async function findCreation(
   } else {
     pool = pool.reverse();
   }
-  const probe = pool.slice(0, 6);
+  const probe = pool.slice(0, 10);
   const txs = await ctx.rpc.getTransactions(probe.map((s) => s.signature), 3);
   const i = txs.findIndex((tx) => tx && createsMint(tx, mint));
   return { found: i >= 0 ? { signature: probe[i].signature, tx: txs[i]!, creatorSigs: sigs } : null, sigs };

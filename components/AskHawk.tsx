@@ -80,7 +80,7 @@ export function AskHawk() {
                 {m.meta.sources.length ? `Sources: ${m.meta.sources.map((s) => s.title).join(' · ')} · ` : ''}
                 {m.meta.knowledge !== 'none' ? `knowledge: ${m.meta.knowledge} · ` : ''}
                 {m.meta.model ? `model: ${m.meta.model.split('/').pop()}` : 'deterministic fallback'}
-                {m.meta.guard.injectionScore !== null ? ` · prompt-guard ${m.meta.guard.injectionScore.toFixed(2)}` : ''}
+                {m.meta.guard.injectionScore !== null ? ` · injection check ${m.meta.guard.injectionScore.toFixed(2)}` : ''}
               </div>
             ) : null}
           </div>

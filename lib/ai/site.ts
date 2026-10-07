@@ -76,7 +76,7 @@ export async function reviewSite(
   if (!ai) return { ...base, verdict: 'suspicious', summary: 'Rendered, but no AI binding to review it.', screenshotKey, renderedChars: text.length };
   const out = await generateStructured<{ verdict: SiteReview['verdict']; lures: string[]; asksForWallet: boolean; impersonates: string; summary: string }>(ai, gatewayId, {
     system:
-      'You audit crypto token websites for wallet-drainer and phishing patterns. Judge only the rendered page text you are given. Lures include: claim or airdrop buttons, "connect wallet to verify", fake migration or V2 swap pages, countdowns to free tokens, support chats asking for seed phrases. A plain memecoin page with links and art is clean. Never use the em dash character.',
+      'You audit crypto token websites for wallet-drainer and phishing patterns. Judge only the rendered page text you are given. Lures include: claim or airdrop buttons, "connect wallet to verify", fake migration or V2 swap pages, countdowns to claim free tokens, support chats asking for seed phrases. A plain memecoin page with art, links, a contract address or a launch or season countdown is clean. Only call a page suspicious when it pushes visitors to connect a wallet or sign something. Never use the em dash character.',
     user: `URL: ${url}\nRENDERED PAGE (markdown):\n${text}`,
     schema: SCHEMA,
     maxTokens: 500,
@@ -88,7 +88,7 @@ export async function reviewSite(
     verdict: ['clean', 'suspicious', 'drainer-likely'].includes(out.data.verdict) ? out.data.verdict : 'suspicious',
     lures: (out.data.lures ?? []).slice(0, 5),
     asksForWallet: Boolean(out.data.asksForWallet),
-    impersonates: out.data.impersonates?.trim() || null,
+    impersonates: noneToNull(out.data.impersonates),
     summary: String(out.data.summary ?? '').replace(/\u2014/g, ', '),
     screenshotKey,
     renderedChars: text.length,
@@ -99,4 +99,9 @@ export async function reviewSite(
 async function sha256(s: string): Promise<string> {
   const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(s));
   return [...new Uint8Array(digest)].map((b) => b.toString(16).padStart(2, '0')).join('').slice(0, 32);
+}
+
+export function noneToNull(v: unknown): string | null {
+  const t = typeof v === 'string' ? v.trim() : '';
+  return !t || /^(none|n\/a|na|null|no|unknown|no brand)\.?$/i.test(t) ? null : t;
 }

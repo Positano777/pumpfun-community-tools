@@ -25,11 +25,13 @@ export interface CopilotAnswer {
   knowledge: 'ai-search' | 'playbook' | 'none';
 }
 
-const SYSTEM = `You are RugHawk, a Solana security analyst answering a user's question.
-Ground every claim in the SCANS, KNOWLEDGE and WEB blocks you are given. If they do not contain the answer, say what you would need.
-When a scan is present: state its grade and score first, then the 2 or 3 findings that matter most, then one concrete next step.
+const SYSTEM = `You are RugHawk, a Solana security analyst answering a trader's question.
+Base every claim on the evidence provided below the question. If the evidence does not answer it, say what you would need instead of guessing.
+Never mention how the evidence was delivered (no "knowledge block", "scan data", "context"); speak as the analyst.
+Keep two concepts apart: a token approval is a delegate a holder signs on their own token account (revocable); a Token-2022 permanent delegate is set by the issuer on the mint and can move or burn tokens from every holder, forever.
+When a scan is present: give its grade and score first, then the 2 or 3 findings that matter most, then one concrete next step.
 Never give financial advice, price targets or "safe to buy" guarantees. Never ask for seed phrases or private keys.
-Keep answers under 180 words. Use short paragraphs or bullets. Never use the em dash character.`;
+Keep answers under 170 words. Short paragraphs or bullets. Never use the em dash character.`;
 
 export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: { role: 'user' | 'assistant'; content: string }[] = []): Promise<CopilotAnswer> {
   const gw = env.AI_GATEWAY_ID;
@@ -52,7 +54,9 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
   const addresses = extractAddresses(question, 2);
   const reports = (await Promise.all(addresses.map((a) => anyReport(env, cfctx, a).catch(() => null)))).filter((r): r is TokenReport | WalletReport => Boolean(r));
 
-  // 2. Knowledge: AI Search when configured, bundled playbook otherwise.
+  // 2. Knowledge: AI Search (hybrid vector + keyword retrieval over the Hawk
+  //    Playbook) merged with exact keyword matches from the bundled copy, so a
+  //    precise term like "permanent delegate" always reaches the model.
   let knowledge: CopilotAnswer['knowledge'] = 'none';
   let snippets: { source: string; text: string }[] = [];
   if (env.AI_SEARCH) {
@@ -66,12 +70,13 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
         .filter((c) => c.text);
       if (snippets.length) knowledge = 'ai-search';
     } catch {
-      // fall back below
+      // keyword retrieval below still grounds the answer
     }
   }
-  if (!snippets.length) {
-    snippets = localRetrieve(question, 3);
-    if (snippets.length) knowledge = 'playbook';
+  const keyword = localRetrieve(question, 2).filter((k) => !snippets.some((s) => s.text.slice(0, 120) === k.text.slice(0, 120)));
+  if (keyword.length) {
+    snippets = [...keyword, ...snippets].slice(0, 5);
+    if (knowledge === 'none') knowledge = 'playbook';
   }
 
   // 3. Optional open-web intel for named tokens (beta API, billed via AI Gateway).
@@ -82,9 +87,9 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
   }
 
   const context = [
-    reports.length ? `SCANS:\n${reports.map((r) => JSON.stringify(digest(r))).join('\n')}` : 'SCANS: none (no address in the question)',
-    snippets.length ? `KNOWLEDGE:\n${snippets.map((s) => `[${s.source}] ${s.text}`).join('\n---\n')}` : 'KNOWLEDGE: none',
-    web.length ? `WEB:\n${web.map((w) => `- ${w.title} (${w.url}): ${w.description ?? ''}`).join('\n')}` : '',
+    reports.length ? `Deterministic scans:\n${reports.map((r) => JSON.stringify(digest(r))).join('\n')}` : 'Deterministic scans: none (no address in the question)',
+    snippets.length ? `Reference notes:\n${snippets.map((s) => `[${s.source}] ${s.text}`).join('\n---\n')}` : 'Reference notes: none',
+    web.length ? `Open-web results:\n${web.map((w) => `- ${w.title} (${w.url}): ${w.description ?? ''}`).join('\n')}` : '',
   ]
     .filter(Boolean)
     .join('\n\n');
@@ -92,7 +97,7 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
   const messages = [
     { role: 'system', content: SYSTEM },
     ...history.slice(-6).map((h) => ({ role: h.role, content: h.content.slice(0, 2000) })),
-    { role: 'user', content: `${context}\n\nQUESTION: ${question}` },
+    { role: 'user', content: `QUESTION: ${question}\n\nEVIDENCE\n${context}` },
   ];
   const out = env.AI ? await generateText(env.AI, gw, messages, 600, { label: 'copilot' }) : null;
   const scans = reports.map((r) =>

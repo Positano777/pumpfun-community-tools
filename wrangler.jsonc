@@ -76,11 +76,13 @@
   //   ADMIN_TOKEN         protects /api/admin/*
   //   CRON_SECRET         authenticates the Watchtower cron call
   "vars": {
-    "NEXT_PUBLIC_APP_URL": "https://rughawk.com",
-    // Create the `rughawk-ai` gateway in the dashboard (AI > AI Gateway) for
-    // per-app logs, caching and a spend limit; until then calls fall back to
-    // the auto-created `default` gateway, then direct.
-    "AI_GATEWAY_ID": "rughawk-ai",
+    // Switch to https://rughawk.com (here and in .env.production) once the
+    // domain is on Cloudflare and the routes above are enabled.
+    "NEXT_PUBLIC_APP_URL": "https://rughawk.plain-forest-6a44.workers.dev",
+    // `default` is created automatically by AI Gateway on first use. For
+    // per-app logs, caching, Guardrails and a spend limit, create a gateway
+    // named `rughawk-ai` (dashboard: AI > AI Gateway) and put its id here.
+    "AI_GATEWAY_ID": "default",
     "AI_SEARCH_INSTANCE": "rughawk-playbook",
     // Web Search API is beta and billed per query through AI Gateway credits.
     "WEB_SEARCH": "off"

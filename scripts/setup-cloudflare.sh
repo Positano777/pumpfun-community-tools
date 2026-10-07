@@ -54,4 +54,4 @@ else
   curl -fsS -X POST "$URL/api/admin/setup" -H "Authorization: Bearer ${ADMIN_TOKEN:?set ADMIN_TOKEN}" && echo
 fi
 
-printf '\n\033[1;32mDone.\033[0m Optional dashboard steps: create AI Gateway "rughawk-ai" (logs, caching, spend limit, Guardrails).\n'
+printf '\n\033[1;32mDone.\033[0m Optional dashboard steps: create AI Gateway "rughawk-ai" (logs, caching, spend limit, Guardrails incl. Prompt Injection) and set AI_GATEWAY_ID to it.\n'

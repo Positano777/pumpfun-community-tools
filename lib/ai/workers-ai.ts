@@ -20,7 +20,6 @@ export const MODELS = {
   vision: '@cf/meta/llama-4-scout-17b-16e-instruct',
   embed: '@cf/baai/bge-base-en-v1.5',
   safety: '@cf/meta/llama-guard-3-8b',
-  injection: '@cf/meta/prompt-guard-2-86m',
   tts: '@cf/deepgram/aura-1',
 } as const;
 

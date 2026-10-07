@@ -5,6 +5,7 @@
  */
 import type { AiBinding } from '../env';
 import { MODELS, generateStructured } from './workers-ai';
+import { noneToNull } from './site';
 
 export interface LogoReview {
   brand: string | null;
@@ -52,7 +53,7 @@ export async function reviewLogo(ai: AiBinding | undefined, gatewayId: string | 
     });
     if (!out) return null;
     return {
-      brand: out.data.brand?.trim() || null,
+      brand: noneToNull(out.data.brand),
       confidence: Math.max(0, Math.min(1, Number(out.data.confidence) || 0)),
       description: String(out.data.description ?? '').replace(/\u2014/g, ', '),
       model: out.model,

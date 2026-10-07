@@ -5,31 +5,35 @@ import { generateStructured } from './workers-ai';
 const SCHEMA = {
   type: 'object',
   properties: {
-    headline: { type: 'string', description: 'One punchy sentence, max 14 words.' },
+    headline: { type: 'string', description: 'Max 12 words: the single most dangerous behavior. No score, grade or token name.' },
     summary: { type: 'string', description: '2 to 4 sentences in plain English.' },
-    topRisks: { type: 'array', items: { type: 'string' }, maxItems: 3 },
-    watch: { type: 'array', items: { type: 'string' }, maxItems: 3, description: 'What to monitor next.' },
+    topRisks: { type: 'array', items: { type: 'string' }, maxItems: 3, description: 'Plain-English consequences, no severity labels.' },
+    watch: { type: 'array', items: { type: 'string' }, maxItems: 3, description: 'Concrete things to monitor next, phrased as actions.' },
     confidence: { type: 'string', enum: ['low', 'medium', 'high'] },
   },
   required: ['headline', 'summary', 'topRisks', 'watch', 'confidence'],
 };
 
-const SYSTEM = `You are RugHawk, a Solana on-chain forensic analyst.
-You explain a deterministic scan to a trader in plain English.
-Rules:
-- Use ONLY the facts in the scan. Never invent numbers, names, addresses or events.
-- The risk score and grade are final; explain them, do not argue with them.
-- Lead with the single most dangerous capability or behavior.
-- If modules were skipped (partial), say what was not checked.
-- No financial advice, no price predictions, no hype. Direct, calm, specific.
-- Never use the em dash character.`;
+const SYSTEM = `You are RugHawk, a Solana on-chain forensic analyst writing for a trader who has 10 seconds.
+You receive a deterministic scan. Explain it; never re-score it.
+
+Output rules:
+- headline: max 12 words. Name the single most dangerous behavior or capability in plain words (for example "Dev dumped their whole bag 5 seconds after launch"). Do not mention the score, the grade or the token name.
+- summary: 2 to 3 sentences. What happened, what it lets someone do to buyers, and how sure the evidence is. If the scan is LOW risk, say what was checked and what still deserves caution.
+- topRisks: up to 3 short consequences in plain English, each tied to a finding (for example "Insiders who bought in the launch block can sell into you"). No severity labels, no copying finding titles word for word.
+- watch: up to 3 concrete things to monitor next, phrased as actions (for example "Watch whether the 2 sniper wallets start selling"). Never repeat a finding.
+- confidence: high when on-chain facts drive the grade, medium when market or website data drive it, low when key modules were skipped.
+Use only facts in the scan. No numbers that are not in the scan. No financial advice. Never use the em dash character.`;
 
 /** Compact, model-friendly digest of a report: the facts that matter, nothing else. */
 export function digest(report: ScanReport): Record<string, unknown> {
   const findings = report.findings
-    .filter((f) => f.severity !== 'good' || report.findings.length < 8)
-    .slice(0, 14)
+    .filter((f) => f.severity !== 'good' && f.severity !== 'info')
+    .slice(0, 12)
     .map((f) => `${f.severity.toUpperCase()}: ${f.title}`);
+  // Passed checks matter too: "mint authority revoked" is evidence, not silence.
+  const passed = report.findings.filter((f) => f.severity === 'good').map((f) => f.title);
+  const notes = report.findings.filter((f) => f.severity === 'info').slice(0, 4).map((f) => f.title);
   if (report.kind === 'token') {
     const r = report as TokenReport;
     return {
@@ -54,8 +58,11 @@ export function digest(report: ScanReport): Record<string, unknown> {
         : null,
       holders: r.holders ? { top10WalletPct: r.holders.top10WalletPct, largestWalletPct: r.holders.largestWalletPct } : null,
       market: r.market ? { dex: r.market.dex, liquidityUsd: Math.round(r.market.totalLiquidityUsd), marketCap: r.market.marketCap } : null,
+      token2022Extensions: r.extensions.map((e) => e.name),
       dnaMatches: r.dna.length,
       findings,
+      passed,
+      notes,
       partial: r.partial,
     };
   }
@@ -73,6 +80,8 @@ export function digest(report: ScanReport): Record<string, unknown> {
     tokensCreated: w.tokensCreated.length,
     program: w.program ? { upgradeable: w.program.upgradeable, verified: w.program.verified } : null,
     findings,
+    passed,
+    notes,
     partial: w.partial,
   };
 }

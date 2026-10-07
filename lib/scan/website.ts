@@ -1,7 +1,7 @@
 import type { Finding, Socials } from './types';
 import type { ScanContext } from './context';
 import { UA, cached, fetchJson, readCapped } from './context';
-import { BRAND_DOMAINS, BRAND_HANDLES } from '../solana/known';
+import { BRAND_DOMAINS, BRAND_HANDLES, UGC_DOMAINS } from '../solana/known';
 
 const TWO_LEVEL_SUFFIXES = new Set(['co.uk', 'org.uk', 'com.au', 'co.jp', 'com.br', 'co.in', 'co.kr', 'com.cn', 'com.tr', 'co.za', 'com.mx', 'com.sg']);
 
@@ -64,7 +64,24 @@ export async function analyzeWebsite(ctx: ScanContext, input: WebsiteInput): Pro
     const host = hostOf(website)!;
     const domain = registrableDomain(host);
     socials.domain = domain;
-    if (BRAND_DOMAINS.has(domain)) {
+    const path = (() => {
+      try {
+        return new URL(website.startsWith('http') ? website : `https://${website}`).pathname.split('/').filter(Boolean);
+      } catch {
+        return [];
+      }
+    })();
+    if (UGC_DOMAINS.has(domain) || (BRAND_DOMAINS.has(domain) && path.length > 1)) {
+      findings.push({
+        id: 'WEBSITE_IS_THIRD_PARTY_POST',
+        severity: 'info',
+        category: 'website',
+        title: `Website is a post on ${domain}, not a project site`,
+        detail: 'Narrative tokens often link the post that inspired them. There is no project site behind it and nobody accountable for it.',
+        weight: 0,
+        evidence: [{ label: 'Website', value: website }],
+      });
+    } else if (BRAND_DOMAINS.has(domain)) {
       findings.push({
         id: 'BORROWED_WEBSITE',
         severity: 'high',
@@ -122,7 +139,7 @@ export async function analyzeWebsite(ctx: ScanContext, input: WebsiteInput): Pro
   }
 
   let page: WebsiteResult['page'] = null;
-  if (website && socials.domain && !BRAND_DOMAINS.has(socials.domain)) {
+  if (website && socials.domain && !BRAND_DOMAINS.has(socials.domain) && !UGC_DOMAINS.has(socials.domain)) {
     page = await cached(ctx, `site:v1:${website}`, 3600, () => fetchPage(ctx, website)).catch(() => null);
     if (page && page.signals.includes('wallet-connect') && page.signals.includes('claim-lure')) {
       findings.push({

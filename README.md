@@ -2,7 +2,9 @@
 
 **Spot the rug before it's pulled.** Solana forensic intelligence for tokens and wallets, built on Cloudflare Workers AI and QuickNode by RaptorLabs (the team behind [Solmint.dev](https://solmint.dev)).
 
-Colosseum **Crypto World's Fair** hackathon entry (Solana track). Domain set reserved for launch: `rughawk.com` · `rughawk.app` · `rughawk.dev`.
+Colosseum **Crypto World's Fair** hackathon entry (Solana track).
+
+**Live:** https://rughawk.plain-forest-6a44.workers.dev (moves to `rughawk.com` once the domain is connected; `rughawk.app` and `rughawk.dev` complete the set).
 
 ---
 
@@ -26,19 +28,19 @@ RugHawk looks where the money is actually lost:
 | **Site & logo forensics** | What the website really renders; whether the logo copies a brand | Browser Run `quickAction()` + Llama 4 Scout (text and vision) |
 | **Wallet forensics** | Program upgradeability/verification, funding trail, approvals, address poisoning | BPF loader parsing, OtterSec verify registry, lookalike detection |
 | **Wallet Shield (dApp)** | Revoke live approvals, close empty accounts, reclaim rent | Signed SPL Token / Token-2022 `Revoke` and `CloseAccount` transactions |
-| **Ask the Hawk** | A copilot that explains evidence and cannot be talked into lying | Deterministic scans + AI Search + Llama 4 Scout, behind Prompt Guard 2 and Llama Guard 3 |
+| **Ask the Hawk** | A copilot that explains evidence and cannot be talked into lying | Deterministic scans + AI Search + Llama 4 Scout, behind an injection check and Llama Guard 3 |
 
-Design rule: **the engine decides, the LLM explains.** The score is deterministic (noisy-OR over weighted findings); AI never changes it.
+Design rule: **the engine decides, the LLM explains.** The score is deterministic (noisy-OR over weighted findings); AI never changes it. A young token whose launch cannot be verified is graded as unverified (medium finding), never as clean.
 
 ## Cloudflare platform map (Startups grant)
 
 | Product | Use |
 |---|---|
 | Workers + Static Assets (OpenNext) | Next.js 16 app and API, one Worker |
-| Workers AI | Llama 4 Scout (verdicts, copilot, vision), Llama 3.3 70B (fallback), Llama Guard 3, Prompt Guard 2, bge-base-en-v1.5, Deepgram Aura (spoken verdicts) |
-| AI Gateway | Every AI call routed through `rughawk-ai` (falls back to `default`, then direct): logs, caching, cost, spend limit, Guardrails |
-| AI Search | Hawk Playbook knowledge base, created and filled at runtime by `/api/admin/setup` |
-| Web Search API (beta) | Optional open-web intel for the copilot (`WEB_SEARCH=on`) |
+| Workers AI | Llama 4 Scout (verdicts, copilot, logo vision, site review), Llama 3.3 70B (fallback), Llama Guard 3 (copilot safety), bge-base-en-v1.5 (Scam DNA), Deepgram Aura (spoken verdicts) |
+| AI Gateway | Every AI call routed through `AI_GATEWAY_ID` (currently the auto-created `default`; create `rughawk-ai` for per-app logs, caching, spend limit and Guardrails, including the Prompt Guard P1 injection category) |
+| AI Search | Instance `rughawk-playbook` (5 docs), created and filled at runtime by `/api/admin/setup` |
+| Web Search API (beta) | Wired into the copilot (`WEB_SEARCH=on`); needs prepaid AI Gateway credits (the API answers 402 until credits are loaded) |
 | Vectorize | Scam DNA index `rughawk-dna` (768-dim, cosine) |
 | Browser Run | Renders token websites (markdown + screenshot) for the drainer-lure review |
 | D1 | Scan history, deployer linkage, feed, watchlist, alerts |
@@ -85,16 +87,21 @@ npx wrangler login
 | `POST /api/watch`, `GET /api/watch?address=` | Watchtower |
 | `GET /api/health` | Bindings + RPC provider health |
 
-## Validation (mainnet, 2026-10-07)
+## Validation (production, 2026-10-07)
 
-| Token | Result | Key evidence |
+Live deployment, 28 real tokens scanned (fresh pump.fun, Meteora DBC and DexScreener-profiled launches): 19 CRITICAL, 2 HIGH, 1 ELEVATED, 2 LOW at the time of scanning. Every CRITICAL is backed by on-chain evidence, for example:
+
+| Token | Grade | Evidence |
 |---|---|---|
-| Fresh pump.fun launch | CRITICAL 86 | Dev dumped 18s after launch; 5 wallets bought 16.4% in the launch block |
-| MICROVERSE (hot, >3k txs in minutes) | CRITICAL 74 | Dev bought 11.2% at creation, dumped 100% 5s after launch; creator was a fee-sharing PDA |
-| SHRENIS (graduated to PumpSwap) | CRITICAL 83 | Dev dumped 100% of a 10.8% bag 2s after launch; 3 bundled wallets took 16.1% |
-| GTA | CRITICAL 70 | 4 wallets took 48.5% of supply in the launch block |
+| JET | CRITICAL | 6 wallets bought 81.1% of supply in the launch block |
+| fomocard | CRITICAL | 7 bundled wallets took 57.9% of supply; dev sold |
+| TRENCHCRAFT | CRITICAL 83 | 8 wallets took 43.7% in the launch block; dev sold |
+| "TRUMP" clone | CRITICAL 89 | Impersonates the real TRUMP mint; serial launcher; dev sold |
+| SHRENIS | CRITICAL 83 | Dev dumped 100% of a 10.8% bag 2 seconds after launch |
 | BONK | LOW 0 | Canonical mint; exchange custody recognised |
-| PYUSD (Token-2022) | context-aware | Permanent delegate/freeze shown as expected for a regulated issuer |
+| PYUSD | context-aware | Permanent delegate and freeze shown as expected for a regulated issuer |
+
+Live AI checks: Llama 4 Scout verdicts (about 4 s, gateway-routed), copilot grounded in AI Search, injection attempts blocked, Llama Guard 3 active, Aura voice (MP3 in 1.8 s), Browser Run render plus R2 screenshot, logo vision, Vectorize Scam DNA (28 vectors).
 
 ## Business model
 
@@ -105,4 +112,4 @@ npx wrangler login
 
 ## Security posture
 
-Endpoint tokens live only as Worker secrets. The RPC relay is origin-checked and method-allowlisted. Every input address is validated. The copilot runs Prompt Guard and Llama Guard before the model sees a word. Shield builds transactions client-side and the user signs them in their own wallet; RugHawk never holds keys. Report security issues to security@raptorlabs.dev.
+Endpoint tokens live only as Worker secrets. The RPC relay is origin-checked and method-allowlisted. Every input address is validated. The copilot screens every message for injection patterns and runs Llama Guard 3 before the model sees it; the model only explains deterministic evidence and cannot trigger actions. Shield builds transactions client-side and the user signs them in their own wallet; RugHawk never holds keys. Report security issues to security@raptorlabs.dev.

@@ -114,13 +114,22 @@ export const BLUE_CHIP_MINTS = new Set(Object.values(BLUE_CHIPS).map((b) => b.mi
  * pointing their website at nickelodeon.com and microsoft.com).
  */
 export const BRAND_DOMAINS = new Set([
-  'google.com', 'microsoft.com', 'apple.com', 'amazon.com', 'meta.com', 'facebook.com', 'instagram.com',
-  'youtube.com', 'tiktok.com', 'netflix.com', 'disney.com', 'nickelodeon.com', 'nick.com', 'tesla.com',
-  'spacex.com', 'x.ai', 'openai.com', 'nvidia.com', 'paypal.com', 'visa.com', 'mastercard.com',
-  'coinbase.com', 'binance.com', 'kraken.com', 'robinhood.com', 'solana.com', 'phantom.app', 'phantom.com',
-  'jup.ag', 'raydium.io', 'orca.so', 'circle.com', 'tether.to', 'whitehouse.gov', 'nasa.gov', 'cnn.com',
-  'bbc.com', 'nytimes.com', 'wikipedia.org', 'reddit.com', 'github.com', 'linkedin.com', 'cocacola.com',
-  'nike.com', 'mcdonalds.com', 'starbucks.com', 'pepsi.com', 'samsung.com', 'sony.com', 'nintendo.com',
+  'google.com', 'microsoft.com', 'apple.com', 'amazon.com', 'meta.com', 'netflix.com', 'disney.com',
+  'nickelodeon.com', 'nick.com', 'tesla.com', 'spacex.com', 'x.ai', 'openai.com', 'nvidia.com', 'paypal.com',
+  'visa.com', 'mastercard.com', 'coinbase.com', 'binance.com', 'kraken.com', 'robinhood.com', 'solana.com',
+  'phantom.app', 'phantom.com', 'jup.ag', 'raydium.io', 'orca.so', 'circle.com', 'tether.to', 'whitehouse.gov',
+  'nasa.gov', 'cnn.com', 'bbc.com', 'nytimes.com', 'cocacola.com', 'nike.com', 'mcdonalds.com', 'starbucks.com',
+  'pepsi.com', 'samsung.com', 'sony.com', 'nintendo.com',
+]);
+
+/**
+ * User-content platforms. A token "website" on one of these is a link to
+ * someone's post or repo (narrative sourcing), not brand impersonation.
+ */
+export const UGC_DOMAINS = new Set([
+  'github.com', 'reddit.com', 'youtube.com', 'youtu.be', 'tiktok.com', 'instagram.com', 'facebook.com',
+  'linkedin.com', 'wikipedia.org', 'medium.com', 'substack.com', 'twitch.tv', 'kick.com', 'imgur.com',
+  'linktr.ee', 'notion.site', 'gitbook.io',
 ]);
 
 /** X/Twitter handles of brands and public figures commonly hijacked by clones. */

@@ -41,6 +41,43 @@ On classic AMMs (Raydium AMM v4, CPMM) the creator receives LP tokens. If the LP
 Operators spray dozens of tokens per day from the same or freshly funded wallets and dump whichever one gets bids. One wallet in the field study ran 90 launches in 36.7 hours; one trended and the wallet still ended net negative, paid for by buyers. Clones copy the name, ticker and links of whatever is trending. RugHawk's Scam DNA compares every token's identity against tokens it already flagged.`,
   },
   {
+    id: 'token-2022-extensions.md',
+    title: 'Token-2022 extensions: what each one lets the issuer do',
+    body: `# Token-2022 extensions: what each one lets the issuer do
+
+Token-2022 (program TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb) lets an issuer bolt extra powers onto a mint. Most are legitimate for regulated assets and dangerous for anonymous memecoins.
+
+## Permanent delegate
+The permanent delegate is an address set by the issuer on the mint itself. It can transfer or burn tokens out of every holder's account at any time, without the holder's signature, and it never expires. It is not the same as a token approval: an approval is a delegate a holder signs on their own token account and can revoke; a permanent delegate is controlled by the issuer and cannot be revoked by holders. Regulated stablecoins such as PayPal USD carry one to comply with legal orders. On an anonymous memecoin it means buyers do not truly own what they hold. RugHawk marks it CRITICAL outside regulated issuers.
+
+## Transfer hook
+A transfer hook makes every transfer call a custom program. The program can reject sells, charge extra, or allow only whitelisted wallets to trade: the most flexible honeypot primitive on Solana. A dormant hook (authority set, no program yet) can be switched on later.
+
+## Transfer fee
+A tax withheld on every transfer and harvested by the withdraw-withheld authority. Launchpad royalties of 1 to 3% are common; above 5% bleeds holders. If a fee config authority exists, the fee can be raised later (up to 100%) after a one-epoch delay.
+
+## Default account state: frozen
+Every new token account starts frozen and only the freeze authority can unfreeze it. Unless you are whitelisted you can buy but never sell.
+
+## Pausable
+One key can halt every transfer, trapping all holders at once.
+
+## Non-transferable
+Soulbound tokens that cannot move after minting. A tradable "currency" with this extension is misrepresented.
+
+## Interest-bearing and scaled UI amount
+The balance your wallet displays is multiplied by an issuer-controlled rate, so screenshots of balances prove nothing.
+
+## Confidential transfers
+Encrypted amounts. Legitimate for privacy, but they make insider flows harder to audit.
+
+## Metadata pointer and token metadata
+Name, ticker and logo stored on the mint. If an update authority remains, they can be changed after launch.
+
+## Mint close authority
+The mint account can be closed once the supply is zero. Low risk on its own.`,
+  },
+  {
     id: 'wallet-drainers.md',
     title: 'Wallet drainers and how to stay safe',
     body: `# Wallet drainers on Solana

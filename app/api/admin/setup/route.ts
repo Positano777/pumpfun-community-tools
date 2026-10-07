@@ -17,10 +17,23 @@ export async function POST(req: Request) {
   const id = env.AI_SEARCH_INSTANCE || 'rughawk-playbook';
   const existing = await env.AI_SEARCH.list().then((r) => r.result.some((i) => i.id === id)).catch(() => false);
   const instance = existing ? env.AI_SEARCH.get(id) : await env.AI_SEARCH.create({ id });
+  // Non-blocking uploads: indexing finishes in the background, so this
+  // request returns in seconds instead of waiting on every document.
   const uploaded: { doc: string; status: string }[] = [];
   for (const doc of PLAYBOOK) {
-    const item = await instance.items.uploadAndPoll(doc.id, doc.body).catch((e: unknown) => ({ status: `error: ${e instanceof Error ? e.message : 'failed'}` }));
-    uploaded.push({ doc: doc.id, status: item?.status ?? 'queued' });
+    let status = 'queued';
+    // A freshly created instance can answer not_found for a few seconds.
+    for (let attempt = 0; attempt < 3; attempt++) {
+      try {
+        await instance.items.upload(doc.id, doc.body);
+        status = 'queued';
+        break;
+      } catch (e) {
+        status = `error: ${e instanceof Error ? e.message : 'failed'}`;
+        await new Promise((r) => setTimeout(r, 3000));
+      }
+    }
+    uploaded.push({ doc: doc.id, status });
   }
   return json({ instance: id, created: !existing, uploaded });
 }

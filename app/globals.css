@@ -1,0 +1,76 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+}
+
+html,
+body {
+  background: #050303;
+  color: #f4f1f1;
+}
+
+body {
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+}
+
+::selection {
+  background: rgba(214, 59, 59, 0.45);
+}
+
+.grid-bg {
+  background-image: linear-gradient(rgba(244, 241, 241, 0.035) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(244, 241, 241, 0.035) 1px, transparent 1px);
+  background-size: 44px 44px;
+  mask-image: radial-gradient(ellipse at 50% 0%, black 30%, transparent 75%);
+}
+
+.glow-top {
+  background: radial-gradient(60% 50% at 50% 0%, rgba(162, 15, 16, 0.35), transparent 70%);
+}
+
+.card {
+  @apply rounded-2xl border border-graphite/70 bg-coal/70 backdrop-blur-sm;
+}
+
+.chip {
+  @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider;
+}
+
+.btn {
+  @apply inline-flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.btn-primary {
+  @apply btn bg-signal text-white shadow-glow hover:bg-[#e04848] active:translate-y-px;
+}
+
+.btn-ghost {
+  @apply btn border border-graphite bg-coal text-bone hover:border-signal/60 hover:text-white;
+}
+
+.scan-line {
+  position: relative;
+  overflow: hidden;
+}
+.scan-line::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(214, 59, 59, 0.25), transparent);
+  animation: sweep 1.6s ease-in-out infinite;
+}
+
+/* Wallet adapter button in the house style */
+.wallet-adapter-button {
+  @apply !h-10 !rounded-xl !bg-signal !px-4 !font-sans !text-sm !font-semibold;
+}
+.wallet-adapter-button:not([disabled]):hover {
+  @apply !bg-[#e04848];
+}
+.wallet-adapter-modal-wrapper {
+  @apply !rounded-2xl !border !border-graphite !bg-coal;
+}

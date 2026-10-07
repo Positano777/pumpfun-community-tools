@@ -1,0 +1,44 @@
+{
+  "name": "rughawk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "RugHawk: Solana forensic scanner for tokens and wallets. Spot the rug before it is pulled.",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "build:cf": "next build --webpack",
+    "preview": "opennextjs-cloudflare build && opennextjs-cloudflare preview",
+    "deploy": "opennextjs-cloudflare build && opennextjs-cloudflare deploy",
+    "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "scan": "tsx scripts/scan-cli.ts"
+  },
+  "dependencies": {
+    "@opennextjs/cloudflare": "1.20.2",
+    "@solana/wallet-adapter-base": "0.9.27",
+    "@solana/wallet-adapter-react": "0.15.39",
+    "@solana/wallet-adapter-react-ui": "0.9.39",
+    "@solana/web3.js": "1.98.4",
+    "next": "16.3.3",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
+    "buffer": "6.0.3"
+  },
+  "devDependencies": {
+    "@types/node": "20.19.43",
+    "@types/react": "19.2.18",
+    "@types/react-dom": "19.2.5",
+    "autoprefixer": "10.5.4",
+    "postcss": "8.5.26",
+    "tailwindcss": "3.4.19",
+    "tsx": "4.23.12",
+    "typescript": "5.9.3",
+    "wrangler": "4.126.0"
+  },
+  "overrides": {
+    "@solana/wallet-adapter-react": "0.15.39",
+    "@solana/wallet-adapter-base": "0.9.27"
+  }
+}

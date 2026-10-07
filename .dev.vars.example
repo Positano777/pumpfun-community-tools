@@ -1,0 +1,9 @@
+# Local development secrets (copy to .dev.vars, which is gitignored).
+# Dedicated RugHawk QuickNode Solana mainnet endpoint (QuickNode dashboard, endpoint 672448).
+QUICKNODE_RPC_URL=https://YOUR-ENDPOINT.solana-mainnet.quiknode.pro/YOUR-TOKEN/
+# Optional failovers
+# HELIUS_RPC_URL=
+# ANKR_RPC_URL=
+# Protects /api/admin/* and the Watchtower cron
+ADMIN_TOKEN=change-me
+CRON_SECRET=change-me

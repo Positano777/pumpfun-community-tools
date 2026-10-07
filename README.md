@@ -20,7 +20,7 @@ RugHawk looks where the money is actually lost:
 
 | Module | What it proves | How |
 |---|---|---|
-| **Launch forensics** | Dev buy at creation, every wallet that bought **in the launch block**, seconds until the deployer dumped | Locates the creation tx even for hot launches (pump.fun curve creator at offset 49, fee-sharing PDA payer hop, graduated-curve walk) and reads the creation block via `getBlock` |
+| **Launch forensics** | Dev buy at creation, every wallet that bought **in the launch block**, seconds until the deployer dumped, fake-holder spraying, dev bags moved to alt wallets | Locates the creation tx even for hot launches (pump.fun curve creator at offset 49, fee-sharing PDA payer hop, graduated-curve walk), reads the creation block via `getBlock`, and separates the deployer's sales from transfers, locks and burns, then checks the bag it holds now |
 | **Deployer dossier** | Wallet age at launch, serial launching, funding trail to an exchange or a burner chain | Signature history + first-inflow tracing, exchange-like heuristic (float/velocity) |
 | **Authority audit** | Mint/freeze authority, mutable metadata, all Token-2022 traps | `jsonParsed` extensions: permanent delegate, transfer hook, fee config, default-frozen, pausable, rescalable UI amount |
 | **Holder intelligence** | Concentration after removing pools, curves, burns, lockers and exchange custody | Owner-program and PDA classification, derived pool authorities |
@@ -89,19 +89,22 @@ npx wrangler login
 
 ## Validation (production, 2026-10-07)
 
-Live deployment, 28 real tokens scanned (fresh pump.fun, Meteora DBC and DexScreener-profiled launches): 19 CRITICAL, 2 HIGH, 1 ELEVATED, 2 LOW at the time of scanning. Every CRITICAL is backed by on-chain evidence, for example:
+30 real tokens scanned on the live deployment: 28 fresh pump.fun and Meteora DBC launches plus two controls (BONK, PYUSD). Result: 22 CRITICAL, 3 HIGH, 1 ELEVATED, 4 LOW (both controls LOW 0). Every grade is backed by on-chain evidence, for example:
 
 | Token | Grade | Evidence |
 |---|---|---|
-| JET | CRITICAL | 6 wallets bought 81.1% of supply in the launch block |
-| fomocard | CRITICAL | 7 bundled wallets took 57.9% of supply; dev sold |
-| TRENCHCRAFT | CRITICAL 83 | 8 wallets took 43.7% in the launch block; dev sold |
-| "TRUMP" clone | CRITICAL 89 | Impersonates the real TRUMP mint; serial launcher; dev sold |
-| SHRENIS | CRITICAL 83 | Dev dumped 100% of a 10.8% bag 2 seconds after launch |
+| JET | CRITICAL | 6 wallets bought 81.2% of supply in the launch block; the deployer then sprayed dust into at least 72 fresh wallets to fake a holder count |
+| SG | CRITICAL | Deployer dumped 100% of its bag 6 minutes after launch through a trading-bot router (CPI into pump.fun) |
+| pls | CRITICAL | Deployer dumped 100% of a 15.7% bag 1 second after launch |
+| "TRUMP" clone | CRITICAL | Impersonates the real TRUMP mint; deployer dumped 100% of its bag 38 seconds after launch |
+| SCraft | CRITICAL | 4 wallets took 31.6% in the launch block; the deployer bought 25.9% at creation and locked all of it in Streamflow 99 seconds later |
+| Infection | CRITICAL | 8 wallets took 37.1% in the launch block; the deployer moved its 4.5% bag to 2 other wallets 5 minutes after launch |
 | BONK | LOW 0 | Canonical mint; exchange custody recognised |
-| PYUSD | context-aware | Permanent delegate and freeze shown as expected for a regulated issuer |
+| PYUSD | LOW 0 | Permanent delegate and freeze shown as expected for a regulated issuer |
 
-Live AI checks: Llama 4 Scout verdicts (about 4 s, gateway-routed), copilot grounded in AI Search, injection attempts blocked, Llama Guard 3 active, Aura voice (MP3 in 1.8 s), Browser Run render plus R2 screenshot, logo vision, Vectorize Scam DNA (28 vectors).
+**Accuracy pass.** The first deployment treated every token that left the deployer wallet as a sale. On the live feed that put a wrong "deployer dumped" headline on 11 of 24 tokens: 6 deployers had locked their bag in Streamflow, 3 had burned tokens, 1 had moved its bag to two wallets and 1 had sprayed dust to fake holders. The engine now reads the deployer's token account history, classifies every outflow (sale, transfer, lock, burn), checks the bag the deployer holds now, and reports what it cannot verify as unverified: never as clean, never as a dump. Regression tests cover each case.
+
+Live AI checks: Llama 4 Scout verdicts (about 4 s, gateway-routed), copilot grounded in AI Search, injection attempts blocked, Llama Guard 3 active, Aura voice (MP3 in 1.8 s), Browser Run render plus R2 screenshot, logo vision, Vectorize Scam DNA (30 vectors).
 
 ## Business model
 

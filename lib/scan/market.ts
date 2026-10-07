@@ -1,6 +1,7 @@
 import type { Finding, Market } from './types';
 import type { ScanContext } from './context';
 import { cached, fetchJson } from './context';
+import { plural } from '../format';
 
 interface DexPair {
   dexId: string;
@@ -22,11 +23,17 @@ interface DexPair {
 /**
  * Market data from DexScreener's public API. A browser User-Agent is required
  * (a bare client gets 403). Cached for 60s: price moves, structure does not.
+ * A failed lookup throws (and is never cached) so the report marks market
+ * data as unchecked instead of claiming there is no pool.
  */
 export async function loadMarket(ctx: ScanContext, mint: string): Promise<Market | null> {
   const pairs = await cached(ctx, `dex:${mint}`, 60, async () => {
-    const res = await fetchJson<DexPair[]>(ctx, `https://api.dexscreener.com/tokens/v1/solana/${mint}`, 6000, 1_500_000);
-    return Array.isArray(res) ? res : [];
+    const url = `https://api.dexscreener.com/tokens/v1/solana/${mint}`;
+    const res =
+      (await fetchJson<DexPair[]>(ctx, url, 6000, 1_500_000).catch(() => null)) ??
+      (await new Promise((r) => setTimeout(r, 400)).then(() => fetchJson<DexPair[]>(ctx, url, 6000, 1_500_000)).catch(() => null));
+    if (!Array.isArray(res)) throw new Error('DexScreener unavailable');
+    return res;
   });
   const own = pairs.filter((p) => p.baseToken?.address === mint || p.quoteToken?.address === mint);
   if (!own.length) return null;
@@ -128,7 +135,7 @@ export function marketFindings(market: Market | null, now: number, launchpadCurv
         id: 'NEW_PAIR',
         severity: 'low',
         category: 'market',
-        title: `Pool is ${ageH < 1 ? `${Math.max(1, Math.round(ageH * 60))} minutes` : `${Math.round(ageH)} hours`} old`,
+        title: `Pool is ${ageH < 1 ? plural(Math.max(1, Math.round(ageH * 60)), 'minute') : plural(Math.round(ageH), 'hour')} old`,
         detail: 'Most rugs and dev dumps happen in the first 24 hours. Measured on trending launches: 10 of 13 were dead within hours.',
         weight: 6,
       });
@@ -142,7 +149,7 @@ export function marketFindings(market: Market | null, now: number, launchpadCurv
       id: 'SELL_PRESSURE',
       severity: 'medium',
       category: 'market',
-      title: `Heavy selling: ${s} sells vs ${b} buys in the last hour`,
+      title: `Heavy selling: ${plural(s, 'sell')} vs ${plural(b, 'buy')} in the last hour`,
       detail: 'Insiders or early buyers are exiting.',
       weight: 8,
     });

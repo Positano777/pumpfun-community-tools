@@ -5,6 +5,7 @@ import { addressHistory, looksLikeExchange, traceFunding } from './funding';
 import { loadShield } from './shield';
 import { scoreFindings, sortFindings } from './score';
 import { allInstructions } from '../rpc';
+import { plural } from '../format';
 import { BPF_UPGRADEABLE_LOADER, KNOWN_PROGRAMS, SYSTEM_PROGRAM, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, programLabel } from '../solana/known';
 import { base64ToBytes, bytesToAddress, isAddress, isPda, shortAddress } from '../solana/address';
 
@@ -142,7 +143,7 @@ export async function scanWallet(ctx: ScanContext, address: string): Promise<Wal
         id: 'FRESH_WALLET',
         severity: ageDays < 1 ? 'high' : 'medium',
         category: 'activity',
-        title: `Wallet is ${ageDays < 1 ? `${Math.max(1, Math.round(ageDays * 24))} hours` : `${Math.round(ageDays)} days`} old`,
+        title: `Wallet is ${ageDays < 1 ? plural(Math.max(1, Math.round(ageDays * 24)), 'hour') : plural(Math.round(ageDays), 'day')} old`,
         detail: 'Fresh wallets are the default tool of drainers, launch operators and OTC scammers: no history, no reputation at stake.',
         weight: ageDays < 1 ? 18 : 10,
       });
@@ -163,7 +164,7 @@ export async function scanWallet(ctx: ScanContext, address: string): Promise<Wal
       id: 'SERIAL_LAUNCHER',
       severity: created.length >= 6 ? 'critical' : 'high',
       category: 'deployer',
-      title: `Minted ${created.length} tokens in its last ${sample.length} transactions`,
+      title: `Minted ${created.length} tokens in its last ${plural(sample.length, 'transaction')}`,
       detail: 'This wallet is a token factory. Serial launchers spray tokens and dump whichever one gets bids.',
       weight: created.length >= 6 ? 45 : 25,
       evidence: created.slice(0, 5).map((c) => ({ label: 'Mint', value: c.mint, href: `/token/${c.mint}` })),

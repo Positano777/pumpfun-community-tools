@@ -110,6 +110,14 @@ export interface LaunchForensics {
   devInitialPct: number | null;
   bundled: { wallets: string[]; pctOfSupply: number; txCount: number };
   devSells: { signature: string; secondsAfterLaunch: number | null; pctOfSupply: number }[];
+  /** Deployer outflows that were not sales (no trading venue, no SOL back): tokens sent to other wallets. */
+  devTransfers: { signature: string; secondsAfterLaunch: number | null; pctOfSupply: number; recipients: number }[];
+  /** Deployer balance now, as % of supply; null when it could not be read. */
+  devCurrentPct: number | null;
+  /** Deployer tokens sent to a locker program (Streamflow, Jupiter Lock). */
+  devLocks: { signature: string; secondsAfterLaunch: number | null; pctOfSupply: number; locker: string }[];
+  /** Deployer tokens burned. */
+  devBurns: { signature: string; secondsAfterLaunch: number | null; pctOfSupply: number }[];
 }
 
 export interface DeployerProfile {

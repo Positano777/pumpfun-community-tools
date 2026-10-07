@@ -51,6 +51,11 @@ export function digest(report: ScanReport): Record<string, unknown> {
             bundledWallets: r.launch.bundled.wallets.length,
             bundledPct: r.launch.bundled.pctOfSupply,
             devSells: r.launch.devSells.length,
+            devTransfers: (r.launch.devTransfers ?? []).length,
+            devTransferRecipients: (r.launch.devTransfers ?? []).reduce((s, t) => s + t.recipients, 0),
+            devHoldsNowPct: r.launch.devCurrentPct ?? null,
+            devLockedPct: (r.launch.devLocks ?? []).reduce((s, x) => s + x.pctOfSupply, 0),
+            devBurnedPct: (r.launch.devBurns ?? []).reduce((s, x) => s + x.pctOfSupply, 0),
           }
         : 'not reached',
       deployer: r.deployer

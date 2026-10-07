@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { TokenReport } from '@/lib/scan/types';
 import { GRADE_COPY } from '@/lib/scan/score';
+import { pctText, plural } from '@/lib/format';
 import { AiVerdictPanel } from './AiVerdictPanel';
 import { FundingChain } from './FundingChain';
 import { ShareBar } from './ShareBar';
@@ -54,6 +55,11 @@ export function TokenReportView({ mint }: { mint: string }) {
   const g = GRADE_STYLE[r.risk.grade];
   const title = `${r.token.name ?? 'Unknown token'}${r.token.symbol ? ` ($${r.token.symbol})` : ''}`;
   const topRisk = r.findings.find((f) => f.weight > 0);
+  // Reports cached before these fields existed lack them.
+  const devTransfers = r.launch?.devTransfers ?? [];
+  const devRecipients = devTransfers.reduce((s, t) => s + t.recipients, 0);
+  const devLockedPct = (r.launch?.devLocks ?? []).reduce((s, x) => s + x.pctOfSupply, 0);
+  const devBurnedPct = (r.launch?.devBurns ?? []).reduce((s, x) => s + x.pctOfSupply, 0);
 
   return (
     <div className="mx-auto max-w-6xl space-y-6 px-4 py-8">
@@ -108,6 +114,10 @@ export function TokenReportView({ mint }: { mint: string }) {
                   <Stat label="Dev buy at creation" value={r.launch.devInitialPct !== null ? `${r.launch.devInitialPct.toFixed(2)}%` : 'n/a'} />
                   <Stat label="Bundled wallets" value={r.launch.bundled.wallets.length} hint={`${r.launch.bundled.pctOfSupply.toFixed(2)}% of supply`} tone={r.launch.bundled.wallets.length >= 3 ? 'text-signal' : ''} />
                   <Stat label="Dev sells" value={r.launch.devSells.length} hint={r.launch.devSells[0]?.secondsAfterLaunch != null ? `first at +${r.launch.devSells[0].secondsAfterLaunch}s` : 'none found'} tone={r.launch.devSells.length ? 'text-signal' : 'text-safe'} />
+                  <Stat label="Dev holds now" value={r.launch.devCurrentPct != null ? `${r.launch.devCurrentPct.toFixed(2)}%` : 'n/a'} hint="of supply" />
+                  <Stat label="Dev transfers" value={devTransfers.length} hint={devRecipients ? `to ${plural(devRecipients, 'wallet')}` : 'none found'} tone={devRecipients >= 10 ? 'text-signal' : ''} />
+                  <Stat label="Dev locked" value={pctText(devLockedPct)} hint={r.launch.devLocks?.[0] ? `in ${r.launch.devLocks[0].locker}` : 'of supply'} />
+                  <Stat label="Dev burned" value={pctText(devBurnedPct)} hint="of supply" tone={devBurnedPct > 0 ? 'text-safe' : ''} />
                 </div>
                 {r.launch.deployer ? <div className="text-xs text-muted">Deployer: <Address value={r.launch.deployer} href={`/wallet/${r.launch.deployer}`} /></div> : null}
                 {r.launch.creationSignature ? (
@@ -169,7 +179,7 @@ export function TokenReportView({ mint }: { mint: string }) {
               <div className="grid grid-cols-2 gap-3">
                 <Stat label="Liquidity" value={r.market.totalLiquidityUsd === 0 && /pump|moonshot|launchlab|dbc/i.test(r.market.dex) ? 'Curve' : usd(r.market.totalLiquidityUsd)} hint={`${r.market.pairs} pair${r.market.pairs > 1 ? 's' : ''} · ${r.market.dex}`} />
                 <Stat label="Market cap" value={usd(r.market.marketCap ?? r.market.fdv)} />
-                <Stat label="24h volume" value={usd(r.market.volume24h)} hint={r.market.buys24h !== null ? `${r.market.buys24h} buys / ${r.market.sells24h} sells` : undefined} />
+                <Stat label="24h volume" value={usd(r.market.volume24h)} hint={r.market.buys24h !== null ? `${plural(r.market.buys24h, 'buy')} / ${plural(r.market.sells24h ?? 0, 'sell')}` : undefined} />
                 <Stat label="1h change" value={r.market.priceChange1h !== null ? `${r.market.priceChange1h > 0 ? '+' : ''}${r.market.priceChange1h.toFixed(1)}%` : 'n/a'} tone={(r.market.priceChange1h ?? 0) < 0 ? 'text-signal' : 'text-safe'} />
                 <a href={r.market.url} target="_blank" rel="noreferrer noopener" className="col-span-2 text-xs text-muted underline underline-offset-4 hover:text-bone">Open the pair on DexScreener</a>
               </div>

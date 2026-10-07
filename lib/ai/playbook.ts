@@ -38,7 +38,16 @@ On classic AMMs (Raydium AMM v4, CPMM) the creator receives LP tokens. If the LP
 - Pausable: one key can halt all transfers.
 
 ## 6. Serial launchers and clones
-Operators spray dozens of tokens per day from the same or freshly funded wallets and dump whichever one gets bids. One wallet in the field study ran 90 launches in 36.7 hours; one trended and the wallet still ended net negative, paid for by buyers. Clones copy the name, ticker and links of whatever is trending. RugHawk's Scam DNA compares every token's identity against tokens it already flagged.`,
+Operators spray dozens of tokens per day from the same or freshly funded wallets and dump whichever one gets bids. One wallet in the field study ran 90 launches in 36.7 hours; one trended and the wallet still ended net negative, paid for by buyers. Clones copy the name, ticker and links of whatever is trending. RugHawk's Scam DNA compares every token's identity against tokens it already flagged.
+
+## 7. Where the dev bag went: sales, locks, burns, fake holders
+Not every token that leaves the deployer wallet is a sale. RugHawk reads the deployer's token account history and classifies each outflow: a sale runs a trading venue (pump.fun, PumpSwap, Raydium, Meteora, Jupiter, directly or through a trading bot's router) or returns SOL; a lock goes to a locker program (Streamflow, Jupiter Lock); a burn destroys supply; anything else is a transfer to other wallets. In an October 2026 mainnet check of 28 launches, 10 deployers locked or burned their entire bag within 35 minutes of launch (8 Streamflow locks, 2 burns); a balance check that treats every outflow as a sale reports each of them as a dump.
+- DEV_SOLD is graded by the share of the bag: dumping half or more within ten minutes is CRITICAL; selling a sliver (under 10% of the bag, often just the launch cost) is MEDIUM.
+- DEV_LOCKED: the deployer sent its bag to a locker. Locked tokens cannot be sold until the lock releases; RugHawk does not read the unlock schedule yet, so check it on the locker. A short lock is theatre.
+- DEV_BURNED: the deployer burned its bag. Burned tokens are destroyed and can never be sold.
+- HOLDER_SPRAY: the deployer paid account rent to drop a few tokens into many fresh wallets right after launch. Measured on mainnet (JET, October 2026): about 30 transactions in one second, each sending 10 tokens to 6 new wallets. It inflates the holder count that terminals display. Manufactured social proof, not demand.
+- DEV_DISTRIBUTED: the deployer moved a meaningful share of supply to a few other wallets. The dev bag is now spread across wallets that holder checks do not link to the deployer, and they can sell without showing up as the deployer.
+- DEV_EXITED: the deployer wallet no longer holds most of its launch bag, but the tokens left after the transactions RugHawk inspected, so the route is unverified. Treat it as a risk to trace, not as a proven dump.`,
   },
   {
     id: 'token-2022-extensions.md',

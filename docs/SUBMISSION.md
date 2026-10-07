@@ -8,7 +8,8 @@ Judging criteria Colosseum publishes: functionality, potential impact, novelty, 
 ## Checklist
 
 - [x] Deployed to Cloudflare: https://rughawk.plain-forest-6a44.workers.dev (Vectorize, secrets, AI Search playbook done)
-- [x] Feed and Scam DNA seeded with 28 real launches
+- [x] Feed and Scam DNA seeded: 28 real launches plus 2 controls, re-scanned with the outflow classifier (sale, transfer, lock, burn)
+- [ ] Re-verify the field-study claim (13 of 13 creators exited, median 7 s) with the outflow classifier before quoting it: a balance check counts Streamflow locks and burns as exits
 - [ ] Buy `rughawk.com`, `rughawk.app`, `rughawk.dev` on Spaceship (verified available 2026-10-07: $8.88 + $6.21 + $6.21 first year)
 - [ ] Add rughawk.com to Cloudflare, uncomment `routes` in `wrangler.jsonc`, set `NEXT_PUBLIC_APP_URL` (wrangler.jsonc + .env.production) to https://rughawk.com, `npm run deploy`
 - [ ] Dashboard: create AI Gateway `rughawk-ai` (Guardrails incl. Prompt Injection P1, daily spend limit), then set `AI_GATEWAY_ID` to it
@@ -31,9 +32,10 @@ Judging criteria Colosseum publishes: functionality, potential impact, novelty, 
 2. Terminal: `npm run scan -- token <fresh mint>`: show the RPC call count and timing.
 3. The hard part: a hot launch with thousands of transactions. Show the creator discovered from the pump.fun bonding curve (offset 49), the fee-sharing PDA hop, the `getBlock` read of the launch slot.
 4. Context-aware scoring: PYUSD (permanent delegate expected for a regulated issuer), BONK (exchange custody recognised).
-5. AI layer: verdict JSON schema, the copilot refusing an injection attempt, Scam DNA neighbours in Vectorize, Browser Run screenshot of a token site, Aura voice verdict.
-6. Shield: build and sign a Revoke + CloseAccount transaction; show the rent coming back.
-7. Security: endpoint tokens as secrets, method-allowlisted RPC relay, edge rate limits, image proxy that hides user IPs.
+5. Lock vs dump: SCraft's deployer moved its whole 25.9% bag out 99 seconds after launch. A balance check calls that a dump; RugHawk reads the Streamflow lock. Then JET: the deployer sprayed dust into dozens of fresh wallets to fake a holder count.
+6. AI layer: verdict JSON schema, the copilot refusing an injection attempt, Scam DNA neighbours in Vectorize, Browser Run screenshot of a token site, Aura voice verdict.
+7. Shield: build and sign a Revoke + CloseAccount transaction; show the rent coming back.
+8. Security: endpoint tokens as secrets, method-allowlisted RPC relay, edge rate limits, image proxy that hides user IPs.
 
 ## Judge-facing one-liner
 

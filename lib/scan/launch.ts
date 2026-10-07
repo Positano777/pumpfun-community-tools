@@ -1,10 +1,11 @@
 import { PublicKey } from '@solana/web3.js';
 import type { Finding, LaunchForensics } from './types';
 import type { ScanContext } from './context';
-import type { ParsedTx, SignatureInfo, TokenBalance } from '../rpc';
+import type { ParsedInstruction, ParsedTx, SignatureInfo, TokenBalance } from '../rpc';
 import { allInstructions, feePayer, programsInvoked } from '../rpc';
-import { KNOWN_PROGRAMS, TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from '../solana/known';
-import { base64ToBytes, bytesToAddress, isAddress } from '../solana/address';
+import { KNOWN_PROGRAMS, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, WSOL_MINT } from '../solana/known';
+import { pctText, plural } from '../format';
+import { associatedTokenAddress, base64ToBytes, bytesToAddress, isAddress } from '../solana/address';
 
 /**
  * Launch-window forensics, built on what our own field study measured on
@@ -30,6 +31,8 @@ export interface LaunchInput {
   mint: string;
   uiSupply: number;
   decimals: number;
+  /** SPL Token or Token-2022 program that owns the mint. */
+  tokenProgram: string;
 }
 
 export interface LaunchHints {
@@ -107,7 +110,8 @@ export async function analyzeLaunch(ctx: ScanContext, input: LaunchInput, hints:
     const { found, sigs } = await findCreation(ctx, input.mint, candidate, h.approxTime);
     if (found) {
       const blockTxs = await creationBlockBuyers(ctx, input.mint, found.tx.slot, found.signature);
-      return finish(ctx, input, found.signature, found.tx, blockTxs, null, found.creatorSigs);
+      // The candidate's history doubles as the deployer's only when it paid for the creation.
+      return finish(ctx, input, found.signature, found.tx, blockTxs, null, feePayer(found.tx) === candidate ? found.creatorSigs : undefined);
     }
     // A candidate created after the launch (pump.fun fee-sharing PDAs are set
     // up seconds later) was paid for by the real deployer: follow its first
@@ -150,17 +154,23 @@ export async function analyzeLaunch(ctx: ScanContext, input: LaunchInput, hints:
     }
   }
 
-  const young = h.approxTime !== null && ctx.now() / 1000 - h.approxTime < 3 * 86_400;
+  // "Established" needs positive evidence of age: a pool older than three
+  // days, or a first page of mint history that already spans three days.
+  // Unknown age is unverified, never clean.
+  const nowS = ctx.now() / 1000;
+  const oldestSeen = first.sigs[first.sigs.length - 1]?.blockTime ?? null;
+  const established =
+    (h.approxTime !== null && nowS - h.approxTime >= 3 * 86_400) || (oldestSeen !== null && nowS - oldestSeen >= 3 * 86_400);
   return {
     launch: emptyLaunch(first.sigs.length),
     findings: [
-      young
+      !established
         ? {
             id: 'LAUNCH_NOT_LOCATED',
             severity: 'medium',
             category: 'launch',
             title: 'Launch forensics could not be completed',
-            detail: 'A young token with heavy early volume whose creation transaction could not be located, so bundle and dev-sell checks did not run. Treat it as unverified, not as clean.',
+            detail: 'A young or undated token with heavy early volume whose creation transaction could not be located, so bundle and dev-sell checks did not run. Treat it as unverified, not as clean.',
             weight: 12,
           }
         : {
@@ -182,14 +192,15 @@ async function findCreation(
   approxTime: number | null,
 ): Promise<{ found: { signature: string; tx: ParsedTx; creatorSigs: SignatureInfo[] } | null; sigs: SignatureInfo[] }> {
   // Busy creators (bots) keep trading after launch, so page back until the
-  // history reaches the launch window or three pages are spent.
+  // history reaches the launch window or three pages are spent. Without a
+  // launch time, page to the end of three pages and probe the oldest.
   const sigs: SignatureInfo[] = [];
   let before: string | undefined;
   for (let page = 0; page < 3; page++) {
     const batch = await ctx.rpc.call<SignatureInfo[]>('getSignaturesForAddress', [candidate, { limit: 1000, commitment: 'confirmed', ...(before ? { before } : {}) }]);
     sigs.push(...batch);
     const oldest = batch[batch.length - 1]?.blockTime ?? null;
-    if (batch.length < 1000 || !approxTime || (oldest !== null && oldest < approxTime - 900)) break;
+    if (batch.length < 1000 || (approxTime && oldest !== null && oldest < approxTime - 900)) break;
     before = batch[batch.length - 1].signature;
   }
   let pool = sigs.filter((s) => !s.err && s.blockTime);
@@ -262,28 +273,58 @@ async function finish(
   }
   const bundledUi = [...bundleWallets.values()].reduce((a, b) => a + b, 0);
 
-  // Dev sells: the deployer's own transactions after creation that reduced its balance.
+  // Where the deployer's bag went: every transaction after creation that
+  // reduced its balance, classified as a sale, transfer, lock or burn. An
+  // outflow touches the deployer's token account and is signed by the
+  // deployer, so the launch window is the intersection of both histories
+  // (bots and spam reference a busy token account in thousands of
+  // transactions the deployer never signed). The current balance catches
+  // exits after the inspected window.
   const devSells: LaunchForensics['devSells'] = [];
+  const devTransfers: LaunchForensics['devTransfers'] = [];
+  const devLocks: LaunchForensics['devLocks'] = [];
+  const devBurns: LaunchForensics['devBurns'] = [];
+  let devCurrentPct: number | null = null;
   if (deployer) {
-    const history =
-      creatorSigs ?? (await ctx.rpc.call<SignatureInfo[]>('getSignaturesForAddress', [deployer, { limit: 1000, commitment: 'confirmed' }]).catch(() => []));
-    const mintSet = mintSigs ? new Set(mintSigs.map((s) => s.signature)) : null;
+    const ata = associatedTokenAddress(deployer, input.mint, input.tokenProgram);
+    const [ataHist, ownerHist, current] = await Promise.all([
+      historySince(ctx, ata, createdAt),
+      creatorSigs ? { sigs: creatorSigs, reached: true } : historySince(ctx, deployer, createdAt),
+      ownerBalance(ctx, deployer, input.mint),
+    ]);
+    if (current !== null && input.uiSupply > 0) devCurrentPct = round((current / input.uiSupply) * 100);
+    let history: SignatureInfo[];
+    if (ataHist?.reached && ownerHist?.reached && ataHist.sigs.length) {
+      const signedByOwner = new Set(ownerHist.sigs.map((s) => s.signature));
+      const both = ataHist.sigs.filter((s) => signedByOwner.has(s.signature));
+      history = both.length ? both : ataHist.sigs;
+    } else if (ataHist?.reached && ataHist.sigs.length) {
+      history = ataHist.sigs;
+    } else {
+      // Non-associated account, or a token account too busy to page back to
+      // the launch: the deployer's own history, narrowed to the mint when known.
+      const mintSet = mintSigs ? new Set(mintSigs.map((s) => s.signature)) : null;
+      history = (ownerHist?.sigs ?? []).filter((s) => !mintSet || mintSet.has(s.signature));
+    }
     const after = history
       .filter((s) => !s.err && s.signature !== creationSignature && (createdAt === null || (s.blockTime ?? 0) >= createdAt))
-      .filter((s) => !mintSet || mintSet.has(s.signature))
       .reverse()
-      .slice(0, 8);
+      .slice(0, 12);
     const txs = after.length ? await ctx.rpc.getTransactions(after.map((s) => s.signature), 4) : [];
     txs.forEach((tx, i) => {
       if (!tx) return;
       const d = ownerDelta(tx, input.mint, deployer);
-      if (d.delta < 0) {
-        devSells.push({
-          signature: after[i].signature,
-          secondsAfterLaunch: tx.blockTime && createdAt ? tx.blockTime - createdAt : null,
-          pctOfSupply: input.uiSupply > 0 ? (-d.delta / input.uiSupply) * 100 : 0,
-        });
-      }
+      if (d.delta >= 0) return;
+      const base = {
+        signature: after[i].signature,
+        secondsAfterLaunch: tx.blockTime && createdAt ? tx.blockTime - createdAt : null,
+        pctOfSupply: input.uiSupply > 0 ? (-d.delta / input.uiSupply) * 100 : 0,
+      };
+      const kind = outflowKind(tx, deployer, input.mint);
+      if (kind === 'sale') devSells.push(base);
+      else if (kind === 'transfer') devTransfers.push({ ...base, recipients: recipientsOf(tx, input.mint, deployer) });
+      else if (kind === 'lock') devLocks.push({ ...base, locker: lockerName(tx) });
+      else devBurns.push(base);
     });
   }
 
@@ -302,8 +343,88 @@ async function finish(
       txCount: bundleTx,
     },
     devSells,
+    devTransfers,
+    devLocks,
+    devBurns,
+    devCurrentPct,
   };
   return { launch, findings: launchFindings(launch, ctx.now()) };
+}
+
+const TRADING_VENUES = new Set(['launchpad', 'amm', 'aggregator', 'orderbook']);
+/** More SOL back than closing a few token accounts refunds in rent. */
+const SALE_MIN_LAMPORTS = 10_000_000;
+
+export type Outflow = 'sale' | 'transfer' | 'lock' | 'burn';
+
+function parsedOf(i: ParsedInstruction): { type: string; info: Record<string, unknown> } | null {
+  return typeof i.parsed === 'object' && i.parsed ? { type: i.parsed.type ?? '', info: i.parsed.info ?? {} } : null;
+}
+
+/**
+ * Why a holder's balance of `mint` dropped in this transaction. A sale runs a
+ * trading venue (directly or through a router's CPI) or returns SOL or
+ * wrapped SOL; locks and burns take tokens off the market; anything else is
+ * a transfer to other wallets (an airdrop, or supply moved to alt wallets).
+ */
+export function outflowKind(tx: ParsedTx, owner: string, mint: string): Outflow {
+  const kinds = new Set([...programsInvoked(tx)].map((p) => KNOWN_PROGRAMS[p]?.kind));
+  if (kinds.has('locker')) return 'lock';
+  if ([...TRADING_VENUES].some((k) => kinds.has(k as never))) return 'sale';
+  if (allInstructions(tx).some((i) => /^burn/.test(parsedOf(i)?.type ?? '') && parsedOf(i)?.info.mint === mint)) return 'burn';
+  if (ownerDelta(tx, WSOL_MINT, owner).delta > 0) return 'sale';
+  const i = tx.transaction.message.accountKeys.findIndex((k) => k.pubkey === owner);
+  if (i < 0 || !tx.meta) return 'transfer';
+  const solBack = tx.meta.postBalances[i] - tx.meta.preBalances[i] + (i === 0 ? tx.meta.fee : 0);
+  return solBack > SALE_MIN_LAMPORTS ? 'sale' : 'transfer';
+}
+
+/**
+ * Signature history of an address back to `since` (unix seconds), newest
+ * first. `reached` is false when three pages were not enough; null on RPC failure.
+ */
+async function historySince(ctx: ScanContext, address: string, since: number | null): Promise<{ sigs: SignatureInfo[]; reached: boolean } | null> {
+  try {
+    const sigs: SignatureInfo[] = [];
+    let before: string | undefined;
+    for (let page = 0; page < 3; page++) {
+      const batch = await ctx.rpc.call<SignatureInfo[]>('getSignaturesForAddress', [address, { limit: 1000, commitment: 'confirmed', ...(before ? { before } : {}) }]);
+      sigs.push(...batch);
+      const oldest = batch[batch.length - 1];
+      if (batch.length < 1000 || (since !== null && (oldest.blockTime ?? Infinity) <= since)) return { sigs, reached: true };
+      before = oldest.signature;
+    }
+    return { sigs, reached: false };
+  } catch {
+    return null;
+  }
+}
+
+function lockerName(tx: ParsedTx): string {
+  for (const p of programsInvoked(tx)) if (KNOWN_PROGRAMS[p]?.kind === 'locker') return KNOWN_PROGRAMS[p].name;
+  return 'a locker';
+}
+
+/** Wallets (other than the sender) whose balance of the mint grew in this transaction. */
+function recipientsOf(tx: ParsedTx, mint: string, sender: string): number {
+  const owners = new Set(
+    (tx.meta?.postTokenBalances ?? []).filter((b) => b.mint === mint && b.owner && b.owner !== sender).map((b) => b.owner!),
+  );
+  return [...owners].filter((o) => ownerDelta(tx, mint, o).delta > 0).length;
+}
+
+async function ownerBalance(ctx: ScanContext, owner: string, mint: string): Promise<number | null> {
+  try {
+    const res = await ctx.rpc.call<{
+      value: { account: { data: { parsed: { info: { tokenAmount: { uiAmount: number | null; uiAmountString?: string } } } } } }[];
+    }>('getTokenAccountsByOwner', [owner, { mint }, { encoding: 'jsonParsed', commitment: 'confirmed' }]);
+    return res.value.reduce((s, a) => {
+      const t = a.account.data.parsed.info.tokenAmount;
+      return s + (t.uiAmount ?? Number(t.uiAmountString ?? 0));
+    }, 0);
+  } catch {
+    return null;
+  }
 }
 
 function emptyLaunch(scanned: number): LaunchForensics {
@@ -318,32 +439,109 @@ function emptyLaunch(scanned: number): LaunchForensics {
     devInitialPct: null,
     bundled: { wallets: [], pctOfSupply: 0, txCount: 0 },
     devSells: [],
+    devTransfers: [],
+    devLocks: [],
+    devBurns: [],
+    devCurrentPct: null,
   };
 }
 
-function launchFindings(l: LaunchForensics, now: number): Finding[] {
+export function launchFindings(l: LaunchForensics, now: number): Finding[] {
   const findings: Finding[] = [];
-  const sold = l.devSells.reduce((s, x) => s + x.pctOfSupply, 0);
-  const firstSell = l.devSells.find((s) => s.secondsAfterLaunch !== null);
-  const soldShare = l.devInitialPct && l.devInitialPct > 0 ? sold / l.devInitialPct : null;
-  const fast = firstSell?.secondsAfterLaunch != null && firstSell.secondsAfterLaunch <= 600;
+  const total = (xs: { pctOfSupply: number }[]) => xs.reduce((s, x) => s + x.pctOfSupply, 0);
+  const at = (xs: { secondsAfterLaunch: number | null }[]) => {
+    const first = xs.find((x) => x.secondsAfterLaunch !== null);
+    return first?.secondsAfterLaunch != null ? ` ${humanSeconds(first.secondsAfterLaunch)} after launch` : '';
+  };
+  const txEvidence = (label: string, xs: { signature: string }[]) =>
+    xs.slice(0, 3).map((x) => ({ label, value: x.signature, href: `https://solscan.io/tx/${x.signature}` }));
+  const bag = l.devInitialPct && l.devInitialPct > 0 ? l.devInitialPct : null;
+  // Share of the launch bag when it is known, share of supply otherwise.
+  const share = (pct: number) => (bag ? `${pctText(Math.min(1, pct / bag) * 100)} of their bag` : `${pctText(pct)} of supply`);
+
+  const sold = total(l.devSells);
+  const moved = total(l.devTransfers);
+  const locked = total(l.devLocks);
+  const burned = total(l.devBurns);
+  const recipients = l.devTransfers.reduce((s, x) => s + x.recipients, 0);
 
   if (l.devSells.length) {
-    const critical = fast && (soldShare === null || soldShare >= 0.5);
-    const bag = soldShare !== null ? `${Math.min(100, Math.round(soldShare * 100))}% of their bag` : `${sold.toFixed(2)}% of supply`;
+    const soldShare = bag ? sold / bag : null;
+    const firstSell = l.devSells.find((s) => s.secondsAfterLaunch !== null);
+    const fast = firstSell?.secondsAfterLaunch != null && firstSell.secondsAfterLaunch <= 600;
+    // A sliver of the bag (often just the launch cost) is not a dump.
+    const minor = soldShare !== null ? soldShare < 0.1 : sold < 0.5;
+    const critical = fast && !minor && (soldShare === null || soldShare >= 0.5);
     findings.push({
       id: 'DEV_SOLD',
-      severity: critical ? 'critical' : 'high',
+      severity: critical ? 'critical' : minor ? 'medium' : 'high',
       category: 'launch',
-      title:
-        firstSell?.secondsAfterLaunch != null
-          ? `Deployer dumped ${bag} ${humanSeconds(firstSell.secondsAfterLaunch)} after launch`
-          : `Deployer sold ${bag}`,
+      title: `Deployer ${critical ? 'dumped' : 'sold'} ${share(sold)}${at(l.devSells)}`,
       detail: 'Dev-buy-and-dump is the default rug on launchpads. In our field sample, 13 of 13 dead launches had the creator exit, median 7 seconds after launch.',
-      weight: critical ? 55 : 25,
-      evidence: l.devSells.slice(0, 3).map((s) => ({ label: 'Sell tx', value: s.signature, href: `https://solscan.io/tx/${s.signature}` })),
+      weight: critical ? 55 : minor ? 10 : 25,
+      evidence: txEvidence('Sell tx', l.devSells),
     });
-  } else if (l.deployer) {
+  }
+
+  // Fake holders: rent paid to drop a few tokens into many fresh wallets.
+  if (recipients >= 10 && moved / recipients < 0.01) {
+    findings.push({
+      id: 'HOLDER_SPRAY',
+      severity: 'high',
+      category: 'launch',
+      title: `Deployer sprayed dust into at least ${plural(recipients, 'wallet')}${at(l.devTransfers)}`,
+      detail: 'The deployer paid account rent to drop a few tokens into fresh wallets. That inflates the holder count terminals display: manufactured social proof, not demand.',
+      weight: 20,
+      evidence: txEvidence('Transfer tx', l.devTransfers),
+    });
+  } else if (moved >= 1) {
+    findings.push({
+      id: 'DEV_DISTRIBUTED',
+      severity: moved >= 5 ? 'high' : 'medium',
+      category: 'launch',
+      title: `Deployer moved ${pctText(moved)} of supply to ${plural(recipients, 'other wallet')}${at(l.devTransfers)}`,
+      detail: 'Supply moved off the deployer wallet hides the dev bag from holder checks. Those wallets can sell without ever showing up as the deployer.',
+      weight: moved >= 5 ? 20 : 10,
+      evidence: txEvidence('Transfer tx', l.devTransfers),
+    });
+  }
+
+  if (l.devLocks.length) {
+    findings.push({
+      id: 'DEV_LOCKED',
+      severity: 'info',
+      category: 'launch',
+      title: `Deployer locked ${share(locked)} in ${l.devLocks[0].locker}${at(l.devLocks)}`,
+      detail: 'Locked tokens cannot be sold until the lock releases. RugHawk does not read the unlock schedule yet: check it on the locker before counting on it.',
+      weight: 0,
+      evidence: txEvidence('Lock tx', l.devLocks),
+    });
+  }
+  if (l.devBurns.length) {
+    findings.push({
+      id: 'DEV_BURNED',
+      severity: 'good',
+      category: 'launch',
+      title: `Deployer burned ${share(burned)}${at(l.devBurns)}`,
+      detail: 'Burned tokens are destroyed: that part of the dev bag can never be sold.',
+      weight: 0,
+      evidence: txEvidence('Burn tx', l.devBurns),
+    });
+  }
+
+  // Bag that left the wallet without passing through the inspected
+  // transactions: the route is unknown, so it is neither clean nor a proven dump.
+  const unexplained = bag && l.devCurrentPct !== null ? Math.max(0, bag - l.devCurrentPct - sold - moved - locked - burned) : 0;
+  if (bag && unexplained >= bag * 0.5) {
+    findings.push({
+      id: 'DEV_EXITED',
+      severity: 'medium',
+      category: 'launch',
+      title: `Deployer wallet no longer holds ${pctText((unexplained / bag) * 100)} of its launch bag`,
+      detail: 'The tokens left after the transactions RugHawk inspected, so the route (sale, transfer, lock or burn) is unverified. Trace the deployer wallet before trusting the launch.',
+      weight: 12,
+    });
+  } else if (!l.devSells.length && l.deployer && (!bag || unexplained < bag * 0.1)) {
     findings.push({
       id: 'DEV_NOT_SOLD',
       severity: 'good',
@@ -361,7 +559,7 @@ function launchFindings(l: LaunchForensics, now: number): Finding[] {
       id: 'BUNDLED_LAUNCH',
       severity: crit ? 'critical' : 'high',
       category: 'launch',
-      title: `${n} wallets bought in the launch block (${l.bundled.pctOfSupply.toFixed(2)}% of supply)`,
+      title: `${plural(n, 'wallet')} bought in the launch block (${l.bundled.pctOfSupply.toFixed(2)}% of supply)`,
       detail: 'Buys that land in the same block as the token creation are bundled with the deployer or are snipers with insider timing. They hold supply bought before the public could.',
       weight: crit ? 45 : 25,
       evidence: l.bundled.wallets.slice(0, 5).map((w) => ({ label: 'Bundled wallet', value: w, href: `/wallet/${w}` })),
@@ -371,7 +569,7 @@ function launchFindings(l: LaunchForensics, now: number): Finding[] {
       id: 'LAUNCH_SNIPERS',
       severity: 'medium',
       category: 'launch',
-      title: `${n} wallet${n > 1 ? 's' : ''} sniped the launch block`,
+      title: `${plural(n, 'wallet')} sniped the launch block`,
       detail: 'Same-block buyers had the transaction before the public saw the token.',
       weight: 8,
       evidence: l.bundled.wallets.map((w) => ({ label: 'Sniper', value: w, href: `/wallet/${w}` })),

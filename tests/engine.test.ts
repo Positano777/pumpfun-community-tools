@@ -7,7 +7,10 @@ import { analyzeMint } from '../lib/scan/mint';
 import { isAddress, isPda, extractAddresses } from '../lib/solana/address';
 import { gatewayUrls } from '../lib/scan/metadata';
 import { localRetrieve } from '../lib/ai/playbook';
-import type { Finding } from '../lib/scan/types';
+import { launchFindings, outflowKind } from '../lib/scan/launch';
+import { pctText, plural } from '../lib/format';
+import type { Finding, LaunchForensics } from '../lib/scan/types';
+import type { ParsedTx } from '../lib/rpc';
 
 const f = (severity: Finding['severity'], weight: number): Finding => ({ id: `${severity}${weight}`, severity, category: 'intel', title: '', detail: '', weight });
 
@@ -91,4 +94,85 @@ test('none-like AI answers normalise to null', async () => {
   assert.equal(noneToNull('none'), null);
   assert.equal(noneToNull(' N/A '), null);
   assert.equal(noneToNull('USDC'), 'USDC');
+});
+
+const launch = (over: Partial<LaunchForensics>): LaunchForensics => ({
+  reached: true,
+  signaturesScanned: 0,
+  creationSignature: 'c',
+  createdAt: 1_000,
+  slot: 1,
+  launchpad: 'pump.fun',
+  deployer: 'Dev1111111111111111111111111111111111111111',
+  devInitialPct: 5,
+  bundled: { wallets: [], pctOfSupply: 0, txCount: 0 },
+  devSells: [],
+  devTransfers: [],
+  devLocks: [],
+  devBurns: [],
+  devCurrentPct: 5,
+  ...over,
+});
+const ids = (l: LaunchForensics) => launchFindings(l, 2_000_000).map((x) => `${x.id}:${x.severity}`);
+
+test('dust sprayed to many wallets is holder inflation, not a dev sell', () => {
+  const spray = Array.from({ length: 8 }, (_, i) => ({ signature: `t${i}`, secondsAfterLaunch: 71, pctOfSupply: 0.000006, recipients: 6 }));
+  const out = launchFindings(launch({ devTransfers: spray }), 2_000_000);
+  assert.ok(!out.some((x) => x.id === 'DEV_SOLD'));
+  const h = out.find((x) => x.id === 'HOLDER_SPRAY');
+  assert.equal(h?.severity, 'high');
+  assert.equal(h?.title, 'Deployer sprayed dust into at least 48 wallets 1m after launch');
+});
+
+test('dev sell severity follows the share of the bag, with honest copy', () => {
+  const sell = (pct: number, at = 30) => [{ signature: 's', secondsAfterLaunch: at, pctOfSupply: pct }];
+  assert.ok(ids(launch({ devSells: sell(5), devCurrentPct: 0 })).includes('DEV_SOLD:critical'));
+  const tiny = launchFindings(launch({ devSells: sell(0.001), devCurrentPct: 4.999 }), 2_000_000).find((x) => x.id === 'DEV_SOLD');
+  assert.equal(tiny?.severity, 'medium');
+  assert.equal(tiny?.title, 'Deployer sold under 0.1% of their bag 30s after launch');
+  assert.ok(ids(launch({ devSells: sell(1, 3600) })).includes('DEV_SOLD:high'));
+});
+
+test('a bag that left after the inspected window is unverified, not clean', () => {
+  assert.ok(ids(launch({ devCurrentPct: 0 })).includes('DEV_EXITED:medium'));
+  assert.ok(!ids(launch({ devCurrentPct: 0 })).includes('DEV_NOT_SOLD:good'));
+  assert.ok(ids(launch({ devCurrentPct: 5 })).includes('DEV_NOT_SOLD:good'));
+  // Supply moved to other wallets explains the drop: reported as distribution instead.
+  const moved = ids(launch({ devCurrentPct: 0, devTransfers: [{ signature: 't', secondsAfterLaunch: 5, pctOfSupply: 5, recipients: 2 }] }));
+  assert.ok(moved.includes('DEV_DISTRIBUTED:high') && !moved.includes('DEV_EXITED:medium'));
+});
+
+test('outflows: venue or real SOL back is a sale; locks, burns and rent refunds are not', () => {
+  const MINT = 'Mint111111111111111111111111111111111111111';
+  const tx = (ix: object, solDelta: number): ParsedTx => ({
+    slot: 1,
+    blockTime: 1,
+    meta: { err: null, fee: 5000, preBalances: [1e9], postBalances: [1e9 + solDelta - 5000] },
+    transaction: { signatures: ['x'], message: { accountKeys: [{ pubkey: 'Dev', signer: true, writable: true }], instructions: [ix as never] } },
+  });
+  const TOKEN22 = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb';
+  assert.equal(outflowKind(tx({ programId: '6EF8rrecthR5Dkzon8Nwu78hRvfCKubJ14M5uBEwF6P' }, -2_000_000), 'Dev', MINT), 'sale');
+  assert.equal(outflowKind(tx({ programId: TOKEN22 }, 50_000_000), 'Dev', MINT), 'sale');
+  assert.equal(outflowKind(tx({ programId: TOKEN22 }, -2_040_000), 'Dev', MINT), 'transfer');
+  // Transfer that closes the sender's token account: the rent refund is not sale proceeds.
+  assert.equal(outflowKind(tx({ programId: TOKEN22 }, 2_039_280), 'Dev', MINT), 'transfer');
+  assert.equal(outflowKind(tx({ programId: 'strmRqUCoQUgGUan5YhzUZa6KqdzwX5L6FpUxfmKg5m' }, -3_000_000), 'Dev', MINT), 'lock');
+  assert.equal(outflowKind(tx({ programId: TOKEN22, parsed: { type: 'burnChecked', info: { mint: MINT } } }, 0), 'Dev', MINT), 'burn');
+});
+
+test('locked and burned dev bags are reported as such, never as dumps or exits', () => {
+  // Measured on mainnet: Streamflow locks and burns that a balance check reads as a dump.
+  const locked = launchFindings(launch({ devCurrentPct: 0, devLocks: [{ signature: 'l', secondsAfterLaunch: 99, pctOfSupply: 5, locker: 'Streamflow' }] }), 2_000_000);
+  assert.deepEqual(locked.map((x) => x.id).sort(), ['DEV_LOCKED', 'DEV_NOT_SOLD', 'LAUNCH_INFO']);
+  assert.equal(locked.find((x) => x.id === 'DEV_LOCKED')?.title, 'Deployer locked 100% of their bag in Streamflow 2m after launch');
+  const burned = ids(launch({ devCurrentPct: 0, devBurns: [{ signature: 'b', secondsAfterLaunch: 363, pctOfSupply: 5 }] }));
+  assert.ok(burned.includes('DEV_BURNED:good') && !burned.some((x) => x.startsWith('DEV_SOLD') || x.startsWith('DEV_EXITED')));
+});
+
+test('copy helpers pluralise and format percentages', () => {
+  assert.equal(plural(1, 'wallet'), '1 wallet');
+  assert.equal(plural(3, 'hour'), '3 hours');
+  assert.equal(pctText(100), '100%');
+  assert.equal(pctText(4.54), '4.5%');
+  assert.equal(pctText(0.0009), 'under 0.1%');
 });

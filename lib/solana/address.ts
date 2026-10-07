@@ -1,5 +1,5 @@
 import { PublicKey } from '@solana/web3.js';
-import { METAPLEX_METADATA_PROGRAM } from './known';
+import { ATA_PROGRAM, METAPLEX_METADATA_PROGRAM } from './known';
 
 const BASE58 = /^[1-9A-HJ-NP-Za-km-z]{32,44}$/;
 
@@ -20,6 +20,15 @@ export function isPda(address: string): boolean {
   } catch {
     return false;
   }
+}
+
+/** The associated token account of `owner` for `mint` under `tokenProgram`. */
+export function associatedTokenAddress(owner: string, mint: string, tokenProgram: string): string {
+  const [ata] = PublicKey.findProgramAddressSync(
+    [new PublicKey(owner).toBytes(), new PublicKey(tokenProgram).toBytes(), new PublicKey(mint).toBytes()],
+    new PublicKey(ATA_PROGRAM),
+  );
+  return ata.toBase58();
 }
 
 export function metaplexMetadataPda(mint: string): string {

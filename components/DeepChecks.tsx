@@ -5,6 +5,7 @@ import type { DnaMatch, Socials } from '@/lib/scan/types';
 import type { SiteReview } from '@/lib/ai/site';
 import type { LogoReview } from '@/lib/ai/vision';
 import { Section } from './ui';
+import { plural } from '@/lib/format';
 
 export function DeepChecks({ mint, website, socials, dna }: { mint: string; website: string | null; socials: Socials; dna: DnaMatch[] }) {
   const [site, setSite] = useState<SiteReview | null>(null);
@@ -52,7 +53,7 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
       <Section title="Website forensics" kicker="Browser Run + Workers AI">
         <div className="space-y-1.5 text-sm">
           <div className="flex justify-between gap-2"><span className="text-muted">Website</span>{website ? <a href={website} target="_blank" rel="noreferrer noopener nofollow" className="truncate text-bone underline underline-offset-4">{socials.domain ?? website}</a> : <span className="text-muted">none</span>}</div>
-          <div className="flex justify-between gap-2"><span className="text-muted">Domain age</span><span className={socials.domainAgeDays !== null && socials.domainAgeDays < 30 ? 'text-caution' : ''}>{socials.domainAgeDays !== null ? `${socials.domainAgeDays} days` : 'unknown'}</span></div>
+          <div className="flex justify-between gap-2"><span className="text-muted">Domain age</span><span className={socials.domainAgeDays !== null && socials.domainAgeDays < 30 ? 'text-caution' : ''}>{socials.domainAgeDays !== null ? plural(socials.domainAgeDays, 'day') : 'unknown'}</span></div>
           <div className="flex justify-between gap-2"><span className="text-muted">X</span>{socials.twitter ? <a href={socials.twitter} target="_blank" rel="noreferrer noopener nofollow" className="truncate text-bone underline underline-offset-4">link</a> : <span className="text-muted">none</span>}</div>
           <div className="flex justify-between gap-2"><span className="text-muted">Telegram</span>{socials.telegram ? <a href={socials.telegram} target="_blank" rel="noreferrer noopener nofollow" className="truncate text-bone underline underline-offset-4">link</a> : <span className="text-muted">none</span>}</div>
         </div>

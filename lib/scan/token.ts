@@ -10,7 +10,7 @@ import { profileDeployer } from './deployer';
 import { analyzeWebsite } from './website';
 import { impersonationFindings } from './impersonation';
 import { scoreFindings, sortFindings } from './score';
-import { BLUE_CHIP_MINTS, KNOWN_PROGRAMS } from '../solana/known';
+import { BLUE_CHIP_MINTS, KNOWN_PROGRAMS, TOKEN_2022_PROGRAM, TOKEN_PROGRAM } from '../solana/known';
 import { isAddress } from '../solana/address';
 
 export class NotAMintError extends Error {
@@ -70,7 +70,7 @@ export async function scanToken(ctx: ScanContext, mint: string): Promise<TokenRe
   const [meta, market, launchRes] = await Promise.all([
     metaP,
     marketP,
-    guarded(partial, 'launch', () => analyzeLaunch(ctx, { mint, uiSupply, decimals: parsed.decimals }, hints), null),
+    guarded(partial, 'launch', () => analyzeLaunch(ctx, { mint, uiSupply, decimals: parsed.decimals, tokenProgram: parsed.program === 'spl-token-2022' ? TOKEN_2022_PROGRAM : TOKEN_PROGRAM }, hints), null),
   ]);
 
   const launch = launchRes?.launch ?? null;
@@ -125,7 +125,7 @@ export async function scanToken(ctx: ScanContext, mint: string): Promise<TokenRe
   if (BLUE_CHIP_MINTS.has(mint)) {
     // Context matters: on a canonical blue chip the biggest balances are
     // exchanges, treasuries and protocol vaults, and most volume is off-DEX.
-    const soften = new Set(['TOP10_CONCENTRATION', 'SINGLE_WHALE', 'LIQ_TO_MCAP', 'THIN_LIQUIDITY', 'LOW_LIQUIDITY', 'METADATA_MUTABLE', 'DEPLOYER_HOLDS']);
+    const soften = new Set(['TOP10_CONCENTRATION', 'SINGLE_WHALE', 'LIQ_TO_MCAP', 'THIN_LIQUIDITY', 'LOW_LIQUIDITY', 'METADATA_MUTABLE', 'DEPLOYER_HOLDS', 'LAUNCH_NOT_LOCATED']);
     for (const f of findings) {
       if (!soften.has(f.id)) continue;
       f.severity = 'info';

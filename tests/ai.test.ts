@@ -161,3 +161,13 @@ test('ai: long pulse text is clipped at a sentence end, never mid-word', () => {
   assert.equal(clip('short', 50), 'short');
   assert.equal(clip('no sentence boundary in this fairly long run of words at all', 30), 'no sentence boundary in this...');
 });
+
+import { usableWatch } from '../lib/ai/pulse';
+
+test('ai: a watch line that repeats the body or runs long is rejected', () => {
+  const body = 'Fresh deployer wallets were seen in all 3 flagged tokens. Two of them also showed deployer exits.';
+  assert.equal(usableWatch('Check who bought in the launch block before you buy.', body), true);
+  assert.equal(usableWatch('Fresh deployer wallets were seen in all 3 flagged tokens. Two of...', body), false);
+  assert.equal(usableWatch('x'.repeat(200), body), false);
+  assert.equal(usableWatch('Check.', body), false);
+});

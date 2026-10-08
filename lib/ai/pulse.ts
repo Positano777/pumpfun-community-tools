@@ -41,6 +41,14 @@ export function pulseBrief(s: Omit<PulseStats, 'totals'>): Record<string, unknow
   };
 }
 
+/** A watch line is one short sentence of its own, not a long one and not the body again. */
+export function usableWatch(watch: string, body: string): boolean {
+  if (watch.length < 15 || watch.length > 180) return false;
+  const a = watch.slice(0, 40).toLowerCase();
+  const b = body.slice(0, 40).toLowerCase();
+  return a !== b && !body.toLowerCase().includes(watch.slice(0, 60).toLowerCase());
+}
+
 /** Cut long model text at the last sentence end before the limit, never mid-word. */
 export function clip(text: string, max: number): string {
   if (text.length <= max) return text;
@@ -61,7 +69,7 @@ export function tidy(v: unknown): string {
 }
 
 export async function marketPulse(env: AppEnv): Promise<Pulse> {
-  const key = 'pulse:v4';
+  const key = 'pulse:v5';
   const hit = env.CACHE ? ((await env.CACHE.get(key, 'json').catch(() => null)) as Pulse | null) : null;
   if (hit) return hit;
   const [rows, t] = await Promise.all([feed(env.DB, { grade: 'risky', limit: 50 }), totals(env.DB)]);
@@ -80,9 +88,9 @@ export async function marketPulse(env: AppEnv): Promise<Pulse> {
     if (out) {
       const headline = clip(tidy(out.data.headline), 120);
       const body = clip(tidy(out.data.body), 520);
-      const watch = clip(tidy(out.data.watch), 200);
+      const watch = tidy(out.data.watch);
       if (headline.length > 8 && body.length > 20) {
-        text = { headline, body, watch: watch.length > 15 ? watch : text.watch };
+        text = { headline, body, watch: usableWatch(watch, body) ? watch : text.watch };
         generated = true;
       }
     }

@@ -7,8 +7,8 @@ const FEATURES = [
   { k: 'Deployer dossier', t: 'Who launched it, really', d: 'Wallet age at launch, serial-launcher detection, and the funding trail back to an exchange or a chain of burner wallets.' },
   { k: 'Authority audit', t: 'Every power the issuer still holds', d: 'Mint and freeze authority, mutable metadata and all Token-2022 traps: permanent delegate, transfer hooks, fee hikes, default-frozen, pausable.' },
   { k: 'Holder intelligence', t: 'Concentration without the noise', d: 'Top holders classified as pools, bonding curves, burns, lockers, exchange custody or plain wallets before any percentage is computed.' },
-  { k: 'Scam DNA', t: 'Same scam, new mint', d: 'Every token identity is turned into a vector fingerprint and indexed, so the 40th copy of a flagged narrative lights up instantly.' },
-  { k: 'Site & logo forensics', t: 'What the website really shows', d: 'A headless browser renders the token website the way a victim sees it, then the Hawk reviews it for drainer lures and checks the logo for brand impersonation.' },
+  { k: 'Scam DNA', t: 'Same scam, new mint', d: 'Every token identity is embedded with Predator AI and stored in Vectorize, so the 40th copy of a flagged narrative lights up instantly.' },
+  { k: 'Site & logo forensics', t: 'What the website really shows', d: 'Browser Run renders the token website the way a victim sees it, then Predator AI reviews it for drainer lures and checks the logo for brand impersonation.' },
 ];
 
 const TIERS = [
@@ -29,7 +29,7 @@ export default function Home() {
             Spot the rug <span className="text-signal">before</span> it&apos;s pulled.
           </h1>
           <p className="mx-auto mt-5 max-w-2xl text-base text-bone/75 md:text-lg">
-            RugHawk reads the launch block, traces the deployer and audits every authority in seconds. Then the Hawk tells you what it means, in plain English.
+            RugHawk reads the launch block, traces the deployer and audits every authority in seconds. Then Predator AI tells you what it means, in plain English.
           </p>
           <div className="mx-auto mt-8 max-w-2xl">
             <SearchBox autoFocus />
@@ -40,7 +40,7 @@ export default function Home() {
             <Link className="underline underline-offset-4 hover:text-bone" href="/token/2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo">PYUSD (Token-2022)</Link>
             <Link className="underline underline-offset-4 hover:text-bone" href="/wallet/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4">Jupiter program</Link>
           </div>
-          <div className="mt-10 text-[11px] uppercase tracking-[0.2em] text-muted">Built on Cloudflare&apos;s global edge · Mainnet data from QuickNode and Ankr</div>
+          <div className="mt-10 text-[11px] uppercase tracking-[0.2em] text-muted">Predator AI · Vectorize · Browser Run · QuickNode · Ankr</div>
         </div>
       </section>
 
@@ -75,7 +75,7 @@ export default function Home() {
         <div className="card p-6 md:p-8">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Ask the Hawk</div>
           <h3 className="mt-2 text-2xl font-extrabold">A forensic copilot that cannot be talked into lying.</h3>
-          <p className="mt-3 text-sm text-muted">Paste an address and ask anything. The deterministic engine decides what is dangerous; the Hawk explains it, grounded in the Hawk Playbook, behind an injection screen and a content safety filter.</p>
+          <p className="mt-3 text-sm text-muted">Paste an address and ask anything. The deterministic engine decides what is dangerous; Predator AI explains it, grounded in the Hawk Playbook, behind Prompt Guard and a content safety filter.</p>
           <Link href="/ask" className="btn-ghost mt-6">Ask a question</Link>
         </div>
       </section>

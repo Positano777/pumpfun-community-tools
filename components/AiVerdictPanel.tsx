@@ -52,7 +52,7 @@ export function AiVerdictPanel({ kind, address, score }: { kind: 'token' | 'wall
     <div className="card relative overflow-hidden p-5 md:p-6">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-signal/70 to-transparent" />
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Hawk verdict · AI brief</div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Hawk verdict · Predator AI</div>
         {verdict ? (
           <button type="button" onClick={listen} disabled={speaking} className="btn-ghost !px-3 !py-1.5 text-xs">
             {speaking ? 'Speaking...' : 'Listen'}

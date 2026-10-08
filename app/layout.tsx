@@ -14,7 +14,7 @@ export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),
   title: { default: 'RugHawk: spot the rug before it is pulled', template: '%s | RugHawk' },
   description:
-    'Solana forensic scanner. Token X-Ray traces the deployer, the launch block and every authority; Wallet Shield revokes drainer approvals in one click. Plain-English verdicts on deterministic evidence.',
+    'Solana forensic scanner. Token X-Ray traces the deployer, the launch block and every authority; Wallet Shield revokes drainer approvals in one click. Powered by Predator AI.',
   openGraph: { siteName: 'RugHawk', type: 'website' },
   twitter: { card: 'summary_large_image' },
   icons: { icon: '/favicon.svg' },

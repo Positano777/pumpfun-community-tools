@@ -81,6 +81,8 @@ export interface StructuredRequest {
   maxTokens?: number;
   gateway?: GatewayOpts;
   model?: string;
+  /** Sampling temperature; lower is more literal. */
+  temperature?: number;
 }
 
 /**
@@ -95,6 +97,7 @@ export async function generateStructured<T>(ai: AiBinding, gatewayId: string | u
     ],
     max_tokens: req.maxTokens ?? 900,
     response_format: { type: 'json_schema', json_schema: req.schema },
+    ...(req.temperature !== undefined ? { temperature: req.temperature } : {}),
   };
   const primary = req.model ?? MODELS.text;
   const models = primary === MODELS.textFallback ? [primary] : [primary, MODELS.textFallback];
@@ -142,9 +145,14 @@ export function parseSse(buffer: string): { texts: string[]; rest: string; done:
       break;
     }
     try {
-      const j = JSON.parse(payload) as { response?: unknown; choices?: { delta?: { content?: unknown } }[] };
+      const j = JSON.parse(payload) as { response?: unknown; usage?: unknown; choices?: { delta?: { content?: unknown }; finish_reason?: unknown }[] };
       const piece = typeof j.response === 'string' ? j.response : typeof j.choices?.[0]?.delta?.content === 'string' ? j.choices[0].delta.content : '';
       if (piece) texts.push(piece);
+      // The final event carries the token usage (or a finish reason): the answer is complete.
+      if ((j.usage && typeof j.usage === 'object') || (typeof j.choices?.[0]?.finish_reason === 'string' && j.choices[0].finish_reason)) {
+        done = true;
+        break;
+      }
     } catch {
       // a line that is not JSON (comments, keep-alives) carries no text
     }
@@ -152,30 +160,56 @@ export function parseSse(buffer: string): { texts: string[]; rest: string; done:
   return { texts, rest, done };
 }
 
-/** Workers AI server-sent events (bytes) as a stream of text deltas; closes on [DONE] or when the source ends. */
-export function sseTextStream(bytes: ReadableStream<Uint8Array>): ReadableStream<string> {
+/**
+ * Workers AI server-sent events (bytes) as a stream of text deltas.
+ *
+ * The upstream stream does not always close after its last event, and a read
+ * that waits on it forever makes the runtime cancel the whole response as
+ * hung. So the text stream finishes on [DONE], on the final usage event, or
+ * after a short idle gap once text has started (a longer one before the first
+ * token), and it never waits for the upstream cancel to settle.
+ */
+export function sseTextStream(bytes: ReadableStream<Uint8Array>, opts: { firstMs?: number; idleMs?: number } = {}): ReadableStream<string> {
   const reader = bytes.getReader();
   const decoder = new TextDecoder();
+  const firstMs = opts.firstMs ?? 20_000;
+  const idleMs = opts.idleMs ?? 3_000;
   let buffer = '';
+  let produced = false;
+  let finished = false;
+  const finish = (controller: ReadableStreamDefaultController<string>) => {
+    if (finished) return;
+    finished = true;
+    for (const t of parseSse(`${buffer}\n`).texts) controller.enqueue(t);
+    buffer = '';
+    controller.close();
+    void reader.cancel().catch(() => undefined);
+  };
   return new ReadableStream<string>({
     async pull(controller) {
-      const { value, done } = await reader.read();
-      if (done) {
-        for (const t of parseSse(`${buffer}\n`).texts) controller.enqueue(t);
-        controller.close();
+      if (finished) return;
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      const idle = new Promise<'idle'>((resolve) => {
+        timer = setTimeout(() => resolve('idle'), produced ? idleMs : firstMs);
+      });
+      const result = await Promise.race([reader.read(), idle]);
+      clearTimeout(timer);
+      if (result === 'idle' || result.done) {
+        finish(controller);
         return;
       }
-      buffer += decoder.decode(value, { stream: true });
+      buffer += decoder.decode(result.value, { stream: true });
       const parsed = parseSse(buffer);
       buffer = parsed.rest;
-      for (const t of parsed.texts) controller.enqueue(t);
-      if (parsed.done) {
-        controller.close();
-        await reader.cancel().catch(() => undefined);
+      for (const t of parsed.texts) {
+        produced = true;
+        controller.enqueue(t);
       }
+      if (parsed.done) finish(controller);
     },
     cancel() {
-      return reader.cancel().catch(() => undefined);
+      finished = true;
+      void reader.cancel().catch(() => undefined);
     },
   });
 }

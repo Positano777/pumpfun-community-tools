@@ -3,14 +3,14 @@
 import { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
-import type { CopilotAnswer } from '@/lib/ai/copilot';
+import type { PublicCopilotAnswer } from '@/lib/ai/copilot';
 import { GradeBadge } from './ui';
 import type { Grade } from '@/lib/scan/types';
 
 interface Msg {
   role: 'user' | 'assistant';
   content: string;
-  meta?: Pick<CopilotAnswer, 'scans' | 'sources' | 'model' | 'knowledge' | 'guard'>;
+  meta?: Pick<PublicCopilotAnswer, 'scans' | 'sources' | 'generated' | 'knowledge' | 'guard'>;
 }
 
 const SUGGESTIONS = [
@@ -39,9 +39,9 @@ export function AskHawk() {
     setMsgs((m) => [...m, { role: 'user', content: question }]);
     try {
       const res = await fetch('/api/ai/ask', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ question, history }) });
-      const d = (await res.json()) as CopilotAnswer & { error?: string };
+      const d = (await res.json()) as PublicCopilotAnswer & { error?: string };
       if (!res.ok) throw new Error(d.error ?? 'The hawk could not answer.');
-      setMsgs((m) => [...m, { role: 'assistant', content: d.answer, meta: { scans: d.scans, sources: d.sources, model: d.model, knowledge: d.knowledge, guard: d.guard } }]);
+      setMsgs((m) => [...m, { role: 'assistant', content: d.answer, meta: { scans: d.scans, sources: d.sources, generated: d.generated, knowledge: d.knowledge, guard: d.guard } }]);
     } catch (e) {
       setMsgs((m) => [...m, { role: 'assistant', content: e instanceof Error ? e.message : 'Something went wrong.' }]);
     } finally {
@@ -78,8 +78,8 @@ export function AskHawk() {
             {m.meta ? (
               <div className="mt-2 text-[11px] text-muted">
                 {m.meta.sources.length ? `Sources: ${m.meta.sources.map((s) => s.title).join(' · ')} · ` : ''}
-                {m.meta.knowledge !== 'none' ? `knowledge: ${m.meta.knowledge} · ` : ''}
-                {m.meta.model ? `model: ${m.meta.model.split('/').pop()}` : 'deterministic fallback'}
+                {m.meta.knowledge !== 'none' ? 'grounded in the Hawk Playbook · ' : ''}
+                {m.meta.generated ? 'Hawk copilot' : 'deterministic fallback'}
                 {m.meta.guard.injectionScore !== null ? ` · injection check ${m.meta.guard.injectionScore.toFixed(2)}` : ''}
               </div>
             ) : null}

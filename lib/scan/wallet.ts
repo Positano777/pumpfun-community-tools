@@ -24,6 +24,7 @@ export async function scanWallet(ctx: ScanContext, address: string): Promise<Wal
   if (!isAddress(address)) throw new Error('Invalid Solana address');
   const started = Date.now();
   const callsBefore = ctx.rpc.calls;
+  const providersBefore = ctx.rpc.snapshot();
   const partial: string[] = [];
   const findings: Finding[] = [];
 
@@ -72,7 +73,7 @@ export async function scanWallet(ctx: ScanContext, address: string): Promise<Wal
   const [funding, shield, sample] = await Promise.all([
     isWalletLike && history ? guarded(partial, 'funding', () => traceFunding(ctx, address, 3, history), []) : Promise.resolve([]),
     accountType === 'wallet' ? guarded(partial, 'holdings', () => loadShield(ctx, address), null) : Promise.resolve(null),
-    guarded(partial, 'transactions', () => ctx.rpc.getTransactions(sigs.filter((s) => !s.err).slice(0, SAMPLE).map((s) => s.signature), 4), []),
+    guarded(partial, 'transactions', () => ctx.rpc.getTransactions(sigs.filter((s) => !s.err).slice(0, SAMPLE), 4), []),
   ]);
 
   // Counterparties from SOL transfers and token-transfer authorities.
@@ -231,6 +232,7 @@ export async function scanWallet(ctx: ScanContext, address: string): Promise<Wal
     scannedAt: ctx.now(),
     durationMs: Date.now() - started,
     rpcCalls: ctx.rpc.calls - callsBefore,
+    rpcProviders: ctx.rpc.since(providersBefore),
     accountType,
     owner: acct?.owner ?? null,
     label: label ?? (acct && !acct.executable && acct.owner !== SYSTEM_PROGRAM ? (KNOWN_PROGRAMS[acct.owner] ? `${KNOWN_PROGRAMS[acct.owner].name} account` : null) : null),

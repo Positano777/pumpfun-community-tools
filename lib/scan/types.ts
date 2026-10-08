@@ -171,6 +171,9 @@ export interface AiVerdict {
   model: string;
 }
 
+/** The verdict as the UI and API see it: no model identifiers. */
+export type PublicAiVerdict = Omit<AiVerdict, 'model'>;
+
 export interface DnaMatch {
   address: string;
   symbol: string | null;
@@ -186,6 +189,8 @@ export interface TokenReport {
   scannedAt: number;
   durationMs: number;
   rpcCalls: number;
+  /** Calls per RPC provider (QuickNode / Ankr split), when the scan ran live. */
+  rpcProviders?: Record<string, number>;
   program: 'spl-token' | 'spl-token-2022';
   token: TokenInfo;
   authorities: { mint: string | null; freeze: string | null };
@@ -231,6 +236,8 @@ export interface WalletReport {
   scannedAt: number;
   durationMs: number;
   rpcCalls: number;
+  /** Calls per RPC provider (QuickNode / Ankr split), when the scan ran live. */
+  rpcProviders?: Record<string, number>;
   accountType: 'wallet' | 'program' | 'pda' | 'token-account' | 'mint' | 'stake' | 'unknown' | 'empty';
   owner: string | null;
   label: string | null;

@@ -1,6 +1,6 @@
 import { getEnv } from '@/lib/env';
 import { tokenReport, walletReport } from '@/lib/service';
-import { aiVerdict } from '@/lib/ai/verdict';
+import { aiVerdict, publicVerdict } from '@/lib/ai/verdict';
 import { fail, json } from '@/lib/http';
 import type { AiVerdict } from '@/lib/scan/types';
 
@@ -20,11 +20,11 @@ export async function GET(req: Request) {
     const report = kind === 'token' ? await tokenReport(env, ctx, address) : await walletReport(env, ctx, address);
     const key = `verdict:v1:${kind}:${address}:${report.risk.score}`;
     const hit = env.CACHE ? ((await env.CACHE.get(key, 'json').catch(() => null)) as AiVerdict | null) : null;
-    if (hit) return json({ verdict: hit, cached: true });
+    if (hit) return json({ verdict: publicVerdict(hit), cached: true });
     const verdict = await aiVerdict(env.AI, env.AI_GATEWAY_ID, report);
     if (!verdict) return json({ verdict: null, error: 'AI verdict unavailable right now. The evidence below is complete without it.' });
     await env.CACHE?.put(key, JSON.stringify(verdict), { expirationTtl: 900 }).catch(() => undefined);
-    return json({ verdict, cached: false });
+    return json({ verdict: publicVerdict(verdict), cached: false });
   } catch (e) {
     return fail(e);
   }

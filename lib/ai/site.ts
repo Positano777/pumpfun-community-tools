@@ -20,6 +20,13 @@ export interface SiteReview {
   model: string | null;
 }
 
+/** The review as the UI and API see it: no model identifiers. */
+export type PublicSiteReview = Omit<SiteReview, 'model'>;
+
+export function publicSiteReview(r: SiteReview): PublicSiteReview {
+  return { url: r.url, verdict: r.verdict, lures: r.lures, asksForWallet: r.asksForWallet, impersonates: r.impersonates, summary: r.summary, screenshotKey: r.screenshotKey, renderedChars: r.renderedChars };
+}
+
 const SCHEMA = {
   type: 'object',
   properties: {

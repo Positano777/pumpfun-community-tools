@@ -114,7 +114,7 @@ async function fundingNode(ctx: ScanContext, address: string, known?: AddressHis
   if (!h.reachedStart || !h.sigs.length) return { ...base, kind: 'wallet', note: 'History too deep to reach first funding' };
   const first = [...h.sigs].reverse().find((s) => !s.err) ?? h.sigs[h.sigs.length - 1];
   base.firstSeen = first.blockTime ?? null;
-  const tx = await ctx.rpc.getTransaction(first.signature);
+  const tx = await ctx.rpc.getTransaction(first.signature, first.slot);
   if (!tx) return { ...base, kind: 'wallet' };
   const { source, lamports } = inflowSource(tx, address);
   return {

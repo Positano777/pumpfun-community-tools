@@ -2,7 +2,7 @@
  * Run the RugHawk engine against mainnet from a terminal.
  *   npm run scan -- token <mint>
  *   npm run scan -- wallet <address>
- * Reads QUICKNODE_RPC_URL (and optional HELIUS_RPC_URL / ANKR_RPC_URL) from .dev.vars.
+ * Reads QUICKNODE_RPC_URL and ANKR_RPC_URL (optional HELIUS_RPC_URL) from .dev.vars.
  */
 import { readFileSync, writeFileSync } from 'node:fs';
 import { SolanaRpc, rpcUpstreams } from '../lib/rpc';
@@ -41,7 +41,7 @@ const r = report as any;
 console.log(`\n${kind.toUpperCase()} ${address}`);
 if (r.token) console.log(`  ${r.token.name} (${r.token.symbol})  program=${r.program}  supply=${r.token.uiSupply}`);
 if (r.accountType) console.log(`  type=${r.accountType} label=${r.label ?? '-'} balance=${r.solBalance} SOL`);
-console.log(`  RISK ${r.risk.score}/100  ${r.risk.grade}   ${r.durationMs}ms  rpcCalls=${r.rpcCalls}`);
+console.log(`  RISK ${r.risk.score}/100  ${r.risk.grade}   ${r.durationMs}ms  rpcCalls=${r.rpcCalls} ${Object.entries(r.rpcProviders ?? {}).map(([k, v]) => `${k}=${v}`).join(' ')}`);
 if (r.launch) console.log(`  launch: reached=${r.launch.reached} pad=${r.launch.launchpad} deployer=${r.launch.deployer} devInitial=${r.launch.devInitialPct}% bundled=${r.launch.bundled.wallets.length}/${r.launch.bundled.pctOfSupply}% devSells=${r.launch.devSells.length} devTransfers=${r.launch.devTransfers.length}/${r.launch.devTransfers.reduce((s: number, t: any) => s + t.recipients, 0)}w locks=${r.launch.devLocks.length} burns=${r.launch.devBurns.length} devNow=${r.launch.devCurrentPct}%`);
 if (r.deployer) console.log(`  deployer: age@launch=${r.deployer.ageHoursAtLaunch}h txs=${r.deployer.txCount}${r.deployer.txCountCapped ? '+' : ''} created=${r.deployer.tokensCreated.length} funding=${r.deployer.fundingChain.map((h: any) => `${h.address.slice(0, 4)}:${h.kind}`).join(' <- ')}`);
 if (r.holders) console.log(`  holders: top10wallets=${r.holders.top10WalletPct}% largest=${r.holders.largestWalletPct}% pool=${r.holders.poolPct}% burned=${r.holders.burnedPct}%`);

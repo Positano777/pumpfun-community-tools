@@ -1,5 +1,5 @@
 import type { AiBinding } from '../env';
-import type { AiVerdict, ScanReport, TokenReport, WalletReport } from '../scan/types';
+import type { AiVerdict, PublicAiVerdict, ScanReport, TokenReport, WalletReport } from '../scan/types';
 import { generateStructured } from './workers-ai';
 
 const SCHEMA = {
@@ -113,4 +113,9 @@ export async function aiVerdict(ai: AiBinding | undefined, gatewayId: string | u
     confidence: ['low', 'medium', 'high'].includes(v.confidence) ? v.confidence : 'medium',
     model: out.model,
   };
+}
+
+/** The verdict as the UI and API see it: no model identifiers. */
+export function publicVerdict(v: AiVerdict): PublicAiVerdict {
+  return { headline: v.headline, summary: v.summary, topRisks: v.topRisks, watch: v.watch, confidence: v.confidence };
 }

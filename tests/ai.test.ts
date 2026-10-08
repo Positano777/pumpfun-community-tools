@@ -85,6 +85,24 @@ test('ai: model events split across chunks become text deltas and stop at [DONE]
   assert.deepEqual(await drain(sseTextStream(src)), ['Hel', 'lo']);
   const noDone = bytes(['data: {"response":"a"}\n\ndata: {"response":"b"}\n']);
   assert.deepEqual(await drain(sseTextStream(noDone)), ['a', 'b']);
+  // The final usage event ends the answer even without [DONE].
+  const usage = parseSse('data: {"response":"z"}\n\ndata: {"response":"","usage":{"prompt_tokens":1}}\n\ndata: {"response":"late"}\n\n');
+  assert.deepEqual(usage, { texts: ['z'], rest: '', done: true });
+});
+
+test('ai: a model stream that never closes still ends after a short idle gap', async () => {
+  const enc = new TextEncoder();
+  const stuck = new ReadableStream<Uint8Array>({
+    start(c) {
+      c.enqueue(enc.encode('data: {"response":"only"}\n\n'));
+      // never closes, never sends [DONE]
+    },
+  });
+  const started = Date.now();
+  assert.deepEqual(await drain(sseTextStream(stuck, { idleMs: 60, firstMs: 500 })), ['only']);
+  assert.ok(Date.now() - started < 450, 'finished on the idle timer, not the first-token timer');
+  const silent = new ReadableStream<Uint8Array>({ start() {} });
+  assert.deepEqual(await drain(sseTextStream(silent, { idleMs: 60, firstMs: 80 })), []);
 });
 
 test('ai: the streamed answer ends with a done event after every delta', async () => {
@@ -104,4 +122,17 @@ test('ai: the streamed answer ends with a done event after every delta', async (
   assert.equal(events[2], 'event: delta\ndata: {"t":"two"}');
   assert.equal(events[3], 'event: done\ndata: {}');
   assert.equal(events.length, 4);
+});
+
+import { pulseBrief, tidy } from '../lib/ai/pulse';
+
+test('ai: the pulse brief uses plain labels and the output is tidied', () => {
+  const s = pulseStats([
+    row({ address: '1', symbol: 'DUCK', top_flags: JSON.stringify(['Deployer wallet was minutes old at launch', 'Deployer dumped 100% of its bag 6 minutes after launch']), updated_at: 999_000 }),
+  ], 1_000_000);
+  const brief = pulseBrief(s) as { behavioursSeenAmongFlaggedTokens: Record<string, number>; mostRecent: string[] };
+  assert.deepEqual(brief.behavioursSeenAmongFlaggedTokens, { 'deployer exits': 1, 'fresh deployer wallets': 1 });
+  assert.equal(brief.mostRecent[0], '$DUCK (CRITICAL 80/100, 0 minutes ago)');
+  assert.equal(tidy('Market Pulse: Fresh wallets, early exits'), 'Fresh wallets, early exits');
+  assert.equal(tidy('  Three launches — two exits  '), 'Three launches , two exits');
 });

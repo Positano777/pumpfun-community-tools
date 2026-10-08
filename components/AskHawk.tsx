@@ -79,7 +79,7 @@ export function AskHawk() {
               <div className="mt-2 text-[11px] text-muted">
                 {m.meta.sources.length ? `Sources: ${m.meta.sources.map((s) => s.title).join(' · ')} · ` : ''}
                 {m.meta.knowledge !== 'none' ? 'grounded in the Hawk Playbook · ' : ''}
-                {m.meta.generated ? 'Hawk copilot' : 'deterministic fallback'}
+                {m.meta.generated ? 'Predator AI' : 'deterministic fallback'}
                 {m.meta.guard.injectionScore !== null ? ` · injection check ${m.meta.guard.injectionScore.toFixed(2)}` : ''}
               </div>
             ) : null}

@@ -1,5 +1,6 @@
 import { getEnv } from '@/lib/env';
-import { askHawk, askHawkStream, publicAnswer, type CopilotMeta } from '@/lib/ai/copilot';
+import { askHawk, askHawkStream, publicAnswer } from '@/lib/ai/copilot';
+import { sseResponse } from '@/lib/ai/sse';
 import { fail, json, originAllowed } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
@@ -24,34 +25,8 @@ export async function POST(req: Request) {
     const { env, ctx } = await getEnv();
     if (body.stream !== true) return json(publicAnswer(await askHawk(env, ctx, question, history)));
     const { meta, stream } = await askHawkStream(env, ctx, question, history);
-    return events(meta, stream);
+    return sseResponse(meta, stream, (t) => t.replace(/—/g, ', '));
   } catch (e) {
     return fail(e);
   }
-}
-
-function events(meta: CopilotMeta, stream: ReadableStream<string>): Response {
-  const encoder = new TextEncoder();
-  const body = new ReadableStream<Uint8Array>({
-    async start(controller) {
-      const send = (event: string, data: unknown) => controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
-      send('meta', meta);
-      const reader = stream.getReader();
-      try {
-        while (true) {
-          const { value, done } = await reader.read();
-          if (done) break;
-          if (value) send('delta', { t: value.replace(/—/g, ', ') });
-        }
-        send('done', {});
-      } catch {
-        send('error', { message: 'The hawk lost the thread. Ask again.' });
-      } finally {
-        controller.close();
-      }
-    },
-  });
-  return new Response(body, {
-    headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' },
-  });
 }

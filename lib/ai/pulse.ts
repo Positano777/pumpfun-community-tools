@@ -15,19 +15,19 @@ export { PATTERN_LABELS, PULSE_PATTERNS, fallbackPulse, pulseStats } from './pul
 const SCHEMA = {
   type: 'object',
   properties: {
-    headline: { type: 'string', description: 'Max 9 words. The dominant pattern of the window. Only numbers present in the stats.' },
-    body: { type: 'string', description: 'Two sentences in plain English on what the flagged launches have in common, using only the counts given.' },
-    watch: { type: 'string', description: 'One short imperative sentence: what a trader should check before buying today.' },
+    headline: { type: 'string', description: 'Max 9 words naming the dominant pattern of the window, for example "Fresh wallets launching, deployers already exiting". Never starts with "Market pulse". Only numbers present in the stats.' },
+    body: { type: 'string', description: 'Two sentences in plain English on what the flagged launches have in common, using only the counts and token names given. No totals, no praise of the system.' },
+    watch: { type: 'string', description: 'One short imperative sentence tied to the most common pattern: the concrete thing to check on a new token before buying, for example the launch block buyers or whether the deployer still holds its bag.' },
   },
   required: ['headline', 'body', 'watch'],
 };
 
 const SYSTEM = `You are the Hawk, RugHawk's Solana forensic analyst, writing the market pulse shown on the home page.
-You receive counts computed by the deterministic engine over the tokens it flagged HIGH or CRITICAL in the last 24 hours, with the names of the three most recent ones.
-Describe the pattern in plain English for a trader. Use only numbers present in the input. Never invent tokens, events or causes. No financial advice. Never use the em dash character.`;
+You receive counts computed by the deterministic engine over the tokens it flagged HIGH or CRITICAL in the last 24 hours (patterns: how many flagged tokens showed each behaviour) with the names of the three most recent ones.
+Write for a trader deciding whether to buy a fresh launch today: name the behaviour that dominates, say how many of the flagged tokens showed it, mention a recent token by name only as an example. Use only numbers present in the input. Never invent tokens, events or causes. No financial advice. Never use the em dash character.`;
 
 export async function marketPulse(env: AppEnv): Promise<Pulse> {
-  const key = 'pulse:v1';
+  const key = 'pulse:v2';
   const hit = env.CACHE ? ((await env.CACHE.get(key, 'json').catch(() => null)) as Pulse | null) : null;
   if (hit) return hit;
   const [rows, t] = await Promise.all([feed(env.DB, { grade: 'risky', limit: 50 }), totals(env.DB)]);
@@ -37,7 +37,7 @@ export async function marketPulse(env: AppEnv): Promise<Pulse> {
   if (env.AI && stats.flagged > 0) {
     const out = await generateStructured<{ headline: string; body: string; watch: string }>(env.AI, env.AI_GATEWAY_ID, {
       system: SYSTEM,
-      user: `STATS:\n${JSON.stringify(stats)}`,
+      user: `STATS (last 24 hours):\n${JSON.stringify({ ...stats, totals: undefined })}`,
       schema: SCHEMA,
       maxTokens: 300,
       gateway: { cacheTtl: 600, label: 'pulse' },

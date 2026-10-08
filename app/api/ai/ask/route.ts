@@ -1,14 +1,19 @@
 import { getEnv } from '@/lib/env';
-import { askHawk, publicAnswer } from '@/lib/ai/copilot';
+import { askHawk, askHawkStream, publicAnswer, type CopilotMeta } from '@/lib/ai/copilot';
 import { fail, json, originAllowed } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
 
-/** POST /api/ai/ask { question, history? }: the forensic copilot. */
+/**
+ * POST /api/ai/ask { question, history?, stream? }: the forensic copilot.
+ * With stream: true the answer arrives as server-sent events: one `meta`
+ * event (scans, sources, guard, knowledge, generated), then `delta` events
+ * carrying text, then `done`.
+ */
 export async function POST(req: Request) {
   if (!originAllowed(req)) return json({ error: 'Forbidden' }, { status: 403 });
   try {
-    const body = (await req.json().catch(() => ({}))) as { question?: unknown; history?: unknown };
+    const body = (await req.json().catch(() => ({}))) as { question?: unknown; history?: unknown; stream?: unknown };
     const question = typeof body.question === 'string' ? body.question.trim() : '';
     if (!question || question.length > 800) return json({ error: 'Ask a question (max 800 characters).' }, { status: 400 });
     const history = Array.isArray(body.history)
@@ -17,8 +22,36 @@ export async function POST(req: Request) {
           .map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content as string }))
       : [];
     const { env, ctx } = await getEnv();
-    return json(publicAnswer(await askHawk(env, ctx, question, history)));
+    if (body.stream !== true) return json(publicAnswer(await askHawk(env, ctx, question, history)));
+    const { meta, stream } = await askHawkStream(env, ctx, question, history);
+    return events(meta, stream);
   } catch (e) {
     return fail(e);
   }
+}
+
+function events(meta: CopilotMeta, stream: ReadableStream<string>): Response {
+  const encoder = new TextEncoder();
+  const body = new ReadableStream<Uint8Array>({
+    async start(controller) {
+      const send = (event: string, data: unknown) => controller.enqueue(encoder.encode(`event: ${event}\ndata: ${JSON.stringify(data)}\n\n`));
+      send('meta', meta);
+      const reader = stream.getReader();
+      try {
+        while (true) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          if (value) send('delta', { t: value.replace(/—/g, ', ') });
+        }
+        send('done', {});
+      } catch {
+        send('error', { message: 'The hawk lost the thread. Ask again.' });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+  return new Response(body, {
+    headers: { 'Content-Type': 'text/event-stream; charset=utf-8', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' },
+  });
 }

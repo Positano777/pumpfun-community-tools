@@ -14,6 +14,8 @@
  */
 import openNextHandler from '../.open-next/worker.js';
 
+const CANONICAL_HOST = 'rughawk.xyz';
+
 const RL_BUCKETS = [
   { prefix: '/api/scan', binding: 'RL_SCAN', label: 'scan' },
   { prefix: '/api/shield', binding: 'RL_SCAN', label: 'scan' },
@@ -49,7 +51,13 @@ async function rateLimited(request, env, pathname) {
 
 export default {
   async fetch(request, env, ctx) {
-    const { pathname } = new URL(request.url);
+    const url = new URL(request.url);
+    // www is an alias: one canonical host for shares, metadata and the origin allowlist.
+    if (url.hostname === `www.${CANONICAL_HOST}`) {
+      url.hostname = CANONICAL_HOST;
+      return Response.redirect(url.toString(), 301);
+    }
+    const { pathname } = url;
     const rl = await rateLimited(request, env, pathname);
     if (rl.response) return rl.response;
     const response = await openNextHandler.fetch(request, env, ctx);

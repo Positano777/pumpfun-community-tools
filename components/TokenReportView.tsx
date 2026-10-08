@@ -9,6 +9,7 @@ import { FundingChain } from './FundingChain';
 import { ShareBar } from './ShareBar';
 import { Address, Findings, RiskDial, ScanSteps, Section, Stat, ago, usd, GRADE_STYLE } from './ui';
 import { DeepChecks } from './DeepChecks';
+import { AskInline } from './AskInline';
 
 const STEPS = [
   'Reading mint authorities and Token-2022 extensions',
@@ -94,6 +95,8 @@ export function TokenReportView({ mint }: { mint: string }) {
       </div>
 
       <AiVerdictPanel kind="token" address={r.mint} score={r.risk.score} />
+
+      <AskInline kind="token" address={r.mint} label={r.token.symbol ? `$${r.token.symbol}` : r.token.name} />
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <Section title="Findings" kicker={`${r.risk.counts.critical} critical · ${r.risk.counts.high} high · ${r.risk.counts.medium} medium`}>

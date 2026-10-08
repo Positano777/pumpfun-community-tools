@@ -15,7 +15,12 @@ export function SearchBox({ autoFocus = false, compact = false }: { autoFocus?: 
     e.preventDefault();
     const address = value.trim().replace(/^.*\/(token|address|account)\//, '').replace(/[?#].*$/, '');
     if (!BASE58.test(address)) {
-      setError('Paste a Solana token mint or wallet address.');
+      const question = value.trim();
+      if (question.length >= 8 && /\s/.test(question)) {
+        router.push(`/ask?q=${encodeURIComponent(question)}`);
+        return;
+      }
+      setError('Paste a Solana token mint or wallet address, or ask a question in plain words.');
       return;
     }
     setError(null);
@@ -33,12 +38,12 @@ export function SearchBox({ autoFocus = false, compact = false }: { autoFocus?: 
 
   return (
     <form onSubmit={submit} className="w-full">
-      <div className={`flex flex-col gap-2 rounded-2xl border border-graphite bg-coal/80 p-2 shadow-glow sm:flex-row ${busy ? 'scan-line' : ''}`}>
+      <div className={`edge-light flex flex-col gap-2 rounded-2xl border border-graphite bg-coal/80 p-2 shadow-glow sm:flex-row ${busy ? 'scan-line' : ''}`}>
         <input
           autoFocus={autoFocus}
           value={value}
           onChange={(e) => setValue(e.target.value)}
-          placeholder="Paste a token mint, wallet or program address"
+          placeholder="Paste a token mint, wallet or program address, or ask Predator AI a question"
           spellCheck={false}
           autoComplete="off"
           className={`min-w-0 flex-1 bg-transparent px-3 font-mono text-sm text-bone placeholder:font-sans placeholder:text-muted focus:outline-none ${compact ? 'py-2' : 'py-3'}`}

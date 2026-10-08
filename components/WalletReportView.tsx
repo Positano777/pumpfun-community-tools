@@ -7,6 +7,7 @@ import { GRADE_COPY } from '@/lib/scan/score';
 import { AiVerdictPanel } from './AiVerdictPanel';
 import { FundingChain } from './FundingChain';
 import { ShareBar } from './ShareBar';
+import { AskInline } from './AskInline';
 import { Address, Findings, RiskDial, ScanSteps, Section, Stat, ago, GRADE_STYLE } from './ui';
 
 const STEPS = ['Identifying the account type', 'Reading activity history', 'Tracing first funding', 'Checking approvals and seizable tokens', 'Looking for address poisoning'];
@@ -54,6 +55,8 @@ export function WalletReportView({ address }: { address: string }) {
       </div>
 
       <AiVerdictPanel kind="wallet" address={r.address} score={r.risk.score} />
+
+      <AskInline kind="wallet" address={r.address} label={r.label} />
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <Section title="Findings" kicker={`${r.risk.counts.critical} critical · ${r.risk.counts.high} high · ${r.risk.counts.medium} medium`}>

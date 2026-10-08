@@ -2,9 +2,10 @@
  * Ask the Hawk: a forensic copilot. The design rule is that the LLM never
  * decides what is dangerous. Addresses in the question are routed to the
  * deterministic engine, knowledge comes from AI Search (or the bundled
- * playbook), optional open-web intel from the Web Search API, and the model's
- * only job is to explain that evidence. Input passes Prompt Guard and Llama
- * Guard first.
+ * playbook) and is re-ranked against the question, optional open-web intel
+ * comes from the Web Search API, and the model's only job is to explain that
+ * evidence. Input passes the injection screen and the safety classifier
+ * first. Answers can be returned whole or streamed token by token.
  */
 import type { AppEnv, ExecutionCtx } from '../env';
 import type { TokenReport, WalletReport } from '../scan/types';
@@ -12,7 +13,7 @@ import { anyReport } from '../service';
 import { extractAddresses } from '../solana/address';
 import { guardInput, type GuardVerdict } from './guard';
 import { digest } from './verdict';
-import { generateText } from './workers-ai';
+import { MODELS, generateText, once, runModel, streamText } from './workers-ai';
 import { localRetrieve } from './playbook';
 import { webIntel, type WebHit } from './websearch';
 
@@ -31,6 +32,9 @@ export interface PublicCopilotAnswer extends Omit<CopilotAnswer, 'model'> {
   generated: boolean;
 }
 
+/** Everything but the answer text: sent first when the answer streams. */
+export type CopilotMeta = Omit<PublicCopilotAnswer, 'answer'>;
+
 export function publicAnswer(a: CopilotAnswer): PublicCopilotAnswer {
   return { answer: a.answer, scans: a.scans, sources: a.sources, guard: a.guard, knowledge: a.knowledge, generated: a.model !== null };
 }
@@ -44,20 +48,36 @@ When a scan is present: give its grade and score first, then the 2 or 3 findings
 Never give financial advice, price targets or "safe to buy" guarantees. Never ask for seed phrases or private keys.
 Keep answers under 170 words. Short paragraphs or bullets. Never use the em dash character.`;
 
-export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: { role: 'user' | 'assistant'; content: string }[] = []): Promise<CopilotAnswer> {
+type Turn = { role: 'user' | 'assistant'; content: string };
+
+interface Prepared {
+  guard: GuardVerdict;
+  /** Set when the guard refused: the text to answer with. */
+  blocked: string | null;
+  scans: CopilotAnswer['scans'];
+  sources: CopilotAnswer['sources'];
+  knowledge: CopilotAnswer['knowledge'];
+  messages: { role: string; content: string }[];
+  /** Deterministic answer when no model is available. */
+  fallback: string;
+}
+
+/** Guard, scan, retrieve, re-rank and assemble the prompt: shared by both answer paths. */
+async function prepare(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: Turn[]): Promise<Prepared> {
   const gw = env.AI_GATEWAY_ID;
   const guard = await guardInput(env.AI, gw, question);
   if (!guard.allowed) {
     return {
-      answer:
+      guard,
+      blocked:
         guard.reason === 'prompt-injection'
           ? 'That message looks like an attempt to override my instructions, so I will not process it. Paste a token mint or wallet address and ask what you want to know about it.'
           : 'I can only help with Solana token and wallet security questions.',
       scans: [],
       sources: [],
-      guard,
-      model: null,
       knowledge: 'none',
+      messages: [],
+      fallback: '',
     };
   }
 
@@ -86,11 +106,24 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
   }
   const keyword = localRetrieve(question, 2).filter((k) => !snippets.some((s) => s.text.slice(0, 120) === k.text.slice(0, 120)));
   if (keyword.length) {
-    snippets = [...keyword, ...snippets].slice(0, 5);
+    snippets = [...keyword, ...snippets].slice(0, 6);
     if (knowledge === 'none') knowledge = 'keyword';
   }
+  // 3. Re-rank the notes against the question so the most relevant ones lead.
+  if (env.AI && snippets.length > 1) {
+    try {
+      const { result } = await runModel(env.AI, MODELS.rerank, { query: question, contexts: snippets.map((s) => ({ text: s.text.slice(0, 1000) })), top_k: 4 }, gw, { label: 'rerank' });
+      const ranked = (result as { response?: { id: number; score: number }[] } | null)?.response;
+      if (Array.isArray(ranked) && ranked.length) {
+        const ordered = ranked.map((r) => snippets[r.id]).filter(Boolean);
+        if (ordered.length) snippets = ordered;
+      }
+    } catch {
+      // retrieval order is still a good order
+    }
+  }
 
-  // 3. Optional open-web intel for named tokens (beta API, billed via AI Gateway).
+  // 4. Optional open-web intel for named tokens (beta API, billed via AI Gateway).
   let web: WebHit[] = [];
   const token = reports.find((r): r is TokenReport => r.kind === 'token');
   if (env.WEB_SEARCH === 'on' && token?.token.symbol && /scam|rug|legit|safe|trust|report/i.test(question)) {
@@ -110,7 +143,6 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
     ...history.slice(-6).map((h) => ({ role: h.role, content: h.content.slice(0, 2000) })),
     { role: 'user', content: `QUESTION: ${question}\n\nEVIDENCE\n${context}` },
   ];
-  const out = env.AI ? await generateText(env.AI, gw, messages, 600, { label: 'copilot' }) : null;
   const scans = reports.map((r) =>
     r.kind === 'token'
       ? { kind: 'token' as const, address: r.mint, label: r.token.symbol ?? r.token.name, risk: r.risk.score, grade: r.risk.grade }
@@ -119,12 +151,31 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
   const fallback = scans.length
     ? scans.map((s) => `${s.label ?? s.address}: ${s.grade} risk (${s.risk}/100). Open the full report for the evidence.`).join('\n')
     : 'Paste a token mint or wallet address and I will scan it.';
+  const sources = [...new Set(snippets.map((s) => s.source))].map((title) => ({ title })).concat(web.map((w) => ({ title: w.title, url: w.url })));
+  return { guard, blocked: null, scans, sources, knowledge, messages, fallback };
+}
+
+export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: Turn[] = []): Promise<CopilotAnswer> {
+  const p = await prepare(env, cfctx, question, history);
+  if (p.blocked) return { answer: p.blocked, scans: [], sources: [], guard: p.guard, model: null, knowledge: 'none' };
+  const out = env.AI ? await generateText(env.AI, env.AI_GATEWAY_ID, p.messages, 600, { label: 'copilot' }) : null;
   return {
-    answer: (out?.text ?? fallback).replace(/\u2014/g, ', '),
-    scans,
-    sources: [...new Set(snippets.map((s) => s.source))].map((title) => ({ title })).concat(web.map((w) => ({ title: w.title, url: w.url }))),
-    guard,
+    answer: (out?.text ?? p.fallback).replace(/—/g, ', '),
+    scans: p.scans,
+    sources: p.sources,
+    guard: p.guard,
     model: out?.model ?? null,
-    knowledge,
+    knowledge: p.knowledge,
+  };
+}
+
+/** Same copilot, answer streamed: the metadata is known before the first token. */
+export async function askHawkStream(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: Turn[] = []): Promise<{ meta: CopilotMeta; stream: ReadableStream<string> }> {
+  const p = await prepare(env, cfctx, question, history);
+  if (p.blocked) return { meta: { scans: [], sources: [], guard: p.guard, knowledge: 'none', generated: false }, stream: once(p.blocked) };
+  const out = env.AI ? await streamText(env.AI, env.AI_GATEWAY_ID, p.messages, 600, { label: 'copilot' }) : null;
+  return {
+    meta: { scans: p.scans, sources: p.sources, guard: p.guard, knowledge: p.knowledge, generated: Boolean(out) },
+    stream: out?.stream ?? once(p.fallback),
   };
 }

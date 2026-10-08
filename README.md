@@ -4,7 +4,7 @@
 
 Colosseum **Crypto World's Fair** hackathon entry (Solana track).
 
-**Live:** https://rughawk.plain-forest-6a44.workers.dev (moves to `rughawk.com` once the domain is connected; `rughawk.app` and `rughawk.dev` complete the set).
+**Live:** https://rughawk.xyz (custom domain on the Worker; https://rughawk.plain-forest-6a44.workers.dev remains the fallback hostname).
 
 ---
 

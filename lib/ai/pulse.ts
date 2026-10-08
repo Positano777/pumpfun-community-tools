@@ -15,9 +15,9 @@ export { PATTERN_LABELS, PULSE_PATTERNS, fallbackPulse, pulseStats } from './pul
 const SCHEMA = {
   type: 'object',
   properties: {
-    headline: { type: 'string', description: 'Max 9 words naming the dominant behaviour in plain words, for example "Fresh wallets launching, deployers already exiting". Only numbers present in the input.' },
-    body: { type: 'string', description: 'Two sentences in plain English on what the flagged launches have in common, using only the counts and token names given. No totals, no praise of the system.' },
-    watch: { type: 'string', description: 'One short imperative sentence tied to the most common pattern: the concrete thing to check on a new token before buying, for example the launch block buyers or whether the deployer still holds its bag.' },
+    headline: { type: 'string', description: 'Max 9 words stating the dominant behaviour as a fact about the flagged tokens, for example "Fresh wallets launching, deployers already exiting". Never advice, never a title. Only numbers present in the input.' },
+    body: { type: 'string', description: 'Two or three complete sentences, under 420 characters, in plain English on what the flagged launches have in common, using only the counts and token names given. No totals, no praise of the system.' },
+    watch: { type: 'string', description: 'One short sentence starting with a verb (Check, Look, Verify) naming the concrete thing to inspect on a new token before buying, tied to the most common behaviour, for example the launch block buyers or whether the deployer still holds its bag.' },
   },
   required: ['headline', 'body', 'watch'],
 };
@@ -41,6 +41,16 @@ export function pulseBrief(s: Omit<PulseStats, 'totals'>): Record<string, unknow
   };
 }
 
+/** Cut long model text at the last sentence end before the limit, never mid-word. */
+export function clip(text: string, max: number): string {
+  if (text.length <= max) return text;
+  const head = text.slice(0, max);
+  const sentence = Math.max(head.lastIndexOf('. '), head.lastIndexOf('! '), head.lastIndexOf('? '), head.endsWith('.') ? head.length - 1 : -1);
+  if (sentence >= max * 0.4) return head.slice(0, sentence + 1).trim();
+  const word = head.lastIndexOf(' ');
+  return `${head.slice(0, word > max * 0.6 ? word : max).trim()}...`;
+}
+
 /** Strip the kicker the model keeps adding, em dashes and stray whitespace. */
 export function tidy(v: unknown): string {
   return String(v ?? '')
@@ -51,7 +61,7 @@ export function tidy(v: unknown): string {
 }
 
 export async function marketPulse(env: AppEnv): Promise<Pulse> {
-  const key = 'pulse:v3';
+  const key = 'pulse:v4';
   const hit = env.CACHE ? ((await env.CACHE.get(key, 'json').catch(() => null)) as Pulse | null) : null;
   if (hit) return hit;
   const [rows, t] = await Promise.all([feed(env.DB, { grade: 'risky', limit: 50 }), totals(env.DB)]);
@@ -68,9 +78,9 @@ export async function marketPulse(env: AppEnv): Promise<Pulse> {
       gateway: { cacheTtl: 600, label: 'pulse' },
     });
     if (out) {
-      const headline = tidy(out.data.headline).slice(0, 120);
-      const body = tidy(out.data.body).slice(0, 500);
-      const watch = tidy(out.data.watch).slice(0, 200);
+      const headline = clip(tidy(out.data.headline), 120);
+      const body = clip(tidy(out.data.body), 520);
+      const watch = clip(tidy(out.data.watch), 200);
       if (headline.length > 8 && body.length > 20) {
         text = { headline, body, watch: watch.length > 15 ? watch : text.watch };
         generated = true;

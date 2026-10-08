@@ -152,3 +152,12 @@ test('ai: an empty model stream still answers with the fallback text', async () 
   assert.equal(events[1], 'event: delta\ndata: {"t":"Ask again in a moment."}');
   assert.equal(events[2], 'event: done\ndata: {}');
 });
+
+import { clip } from '../lib/ai/pulse';
+
+test('ai: long pulse text is clipped at a sentence end, never mid-word', () => {
+  const long = 'First sentence here. Second sentence follows it. Third one is long and would be cut.';
+  assert.equal(clip(long, 50), 'First sentence here. Second sentence follows it.');
+  assert.equal(clip('short', 50), 'short');
+  assert.equal(clip('no sentence boundary in this fairly long run of words at all', 30), 'no sentence boundary in this...');
+});

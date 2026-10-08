@@ -148,8 +148,13 @@ export function parseSse(buffer: string): { texts: string[]; rest: string; done:
       const j = JSON.parse(payload) as { response?: unknown; usage?: unknown; choices?: { delta?: { content?: unknown }; finish_reason?: unknown }[] };
       const piece = typeof j.response === 'string' ? j.response : typeof j.choices?.[0]?.delta?.content === 'string' ? j.choices[0].delta.content : '';
       if (piece) texts.push(piece);
-      // The final event carries the token usage (or a finish reason): the answer is complete.
-      if ((j.usage && typeof j.usage === 'object') || (typeof j.choices?.[0]?.finish_reason === 'string' && j.choices[0].finish_reason)) {
+      // Complete when a choice carries a finish reason, or on the native final
+      // event ({"response":"","usage":{...}} with no choices). Chat-style
+      // chunks may carry a usage object on every event, so usage alone is
+      // never a terminator.
+      const finished = typeof j.choices?.[0]?.finish_reason === 'string' && j.choices[0].finish_reason !== '';
+      const nativeFinal = !Array.isArray(j.choices) && j.usage !== undefined && j.usage !== null && typeof j.usage === 'object' && !piece;
+      if (finished || nativeFinal) {
         done = true;
         break;
       }

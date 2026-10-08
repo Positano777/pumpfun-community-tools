@@ -85,9 +85,17 @@ test('ai: model events split across chunks become text deltas and stop at [DONE]
   assert.deepEqual(await drain(sseTextStream(src)), ['Hel', 'lo']);
   const noDone = bytes(['data: {"response":"a"}\n\ndata: {"response":"b"}\n']);
   assert.deepEqual(await drain(sseTextStream(noDone)), ['a', 'b']);
-  // The final usage event ends the answer even without [DONE].
+  // The native final event ends the answer even without [DONE].
   const usage = parseSse('data: {"response":"z"}\n\ndata: {"response":"","usage":{"prompt_tokens":1}}\n\ndata: {"response":"late"}\n\n');
   assert.deepEqual(usage, { texts: ['z'], rest: '', done: true });
+  // Chat-style chunks carry usage on every event: only a finish reason ends them.
+  const chat = parseSse(
+    'data: {"choices":[{"delta":{"content":"","role":"assistant"},"finish_reason":null}],"usage":{"prompt_tokens":0}}\n\n' +
+      'data: {"choices":[{"delta":{"content":"Hi"},"finish_reason":null}],"usage":{"prompt_tokens":0}}\n\n' +
+      'data: {"choices":[{"delta":{},"finish_reason":"stop"}],"usage":{"prompt_tokens":0}}\n\n' +
+      'data: {"choices":[],"usage":{"prompt_tokens":0}}\n\n',
+  );
+  assert.deepEqual(chat, { texts: ['Hi'], rest: '', done: true });
 });
 
 test('ai: a model stream that never closes still ends after a short idle gap', async () => {

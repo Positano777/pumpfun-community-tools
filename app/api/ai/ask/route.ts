@@ -24,8 +24,8 @@ export async function POST(req: Request) {
       : [];
     const { env, ctx } = await getEnv();
     if (body.stream !== true) return json(publicAnswer(await askHawk(env, ctx, question, history)));
-    const { meta, stream } = await askHawkStream(env, ctx, question, history);
-    return sseResponse(meta, stream, (t) => t.replace(/—/g, ', '));
+    const { meta, stream, fallback } = await askHawkStream(env, ctx, question, history);
+    return sseResponse(meta, stream, (t) => t.replace(/\u2014/g, ', '), fallback);
   } catch (e) {
     return fail(e);
   }

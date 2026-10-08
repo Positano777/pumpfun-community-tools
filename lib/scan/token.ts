@@ -49,6 +49,7 @@ export async function scanToken(ctx: ScanContext, mint: string): Promise<TokenRe
   if (!isAddress(mint)) throw new Error('Invalid Solana address');
   const started = Date.now();
   const callsBefore = ctx.rpc.calls;
+  const providersBefore = ctx.rpc.snapshot();
   const partial: string[] = [];
 
   const parsed = await fetchMint(ctx, mint);
@@ -150,6 +151,7 @@ export async function scanToken(ctx: ScanContext, mint: string): Promise<TokenRe
     scannedAt: ctx.now(),
     durationMs: Date.now() - started,
     rpcCalls: ctx.rpc.calls - callsBefore,
+    rpcProviders: ctx.rpc.since(providersBefore),
     program: parsed.program,
     token: {
       name,

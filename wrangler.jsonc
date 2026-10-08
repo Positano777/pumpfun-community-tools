@@ -70,9 +70,14 @@
   ],
 
   // Secrets (never in this file): npx wrangler secret put <NAME>
-  //   QUICKNODE_RPC_URL   dedicated RugHawk Solana mainnet endpoint (primary)
+  //   QUICKNODE_RPC_URL   RugHawk QuickNode endpoint 672714. Archive node: all
+  //                       history walks, heavy index methods, half of the
+  //                       state reads (lib/rpc.ts).
+  //   ANKR_RPC_URL        Ankr Solana endpoint. Hot-state node: the other half
+  //                       of the state reads and recent transactions (keeps
+  //                       about 14 hours of ledger, never a history walk).
   //   HELIUS_RPC_URL      optional failover
-  //   ANKR_RPC_URL        optional failover
+  // Optional vars: QUICKNODE_RPC_RPS / ANKR_RPC_RPS, per-isolate budgets (default 20).
   //   ADMIN_TOKEN         protects /api/admin/*
   //   CRON_SECRET         authenticates the Watchtower cron call
   "vars": {

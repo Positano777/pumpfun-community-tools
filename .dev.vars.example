@@ -1,9 +1,16 @@
 # Local development secrets (copy to .dev.vars, which is gitignored).
-# Dedicated RugHawk QuickNode Solana mainnet endpoint (QuickNode dashboard, endpoint 672448).
+# Both providers run side by side (lib/rpc.ts): QuickNode is the archive node
+# (history walks, heavy index methods, half of the state reads); Ankr is the
+# hot-state node (the other half of the state reads and recent transactions).
+# RugHawk QuickNode Solana mainnet endpoint (QuickNode dashboard, endpoint 672714, label RugHawk).
 QUICKNODE_RPC_URL=https://YOUR-ENDPOINT.solana-mainnet.quiknode.pro/YOUR-TOKEN/
-# Optional failovers
+# Ankr Solana mainnet endpoint (Ankr dashboard, premium key).
+ANKR_RPC_URL=https://rpc.ankr.com/solana/YOUR-KEY
+# Optional failover
 # HELIUS_RPC_URL=
-# ANKR_RPC_URL=
+# Optional per-isolate request budgets, requests per second (default 20 each)
+# QUICKNODE_RPC_RPS=20
+# ANKR_RPC_RPS=20
 # Protects /api/admin/* and the Watchtower cron
 ADMIN_TOKEN=change-me
 CRON_SECRET=change-me

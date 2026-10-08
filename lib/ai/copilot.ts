@@ -22,10 +22,21 @@ export interface CopilotAnswer {
   sources: { title: string; url?: string }[];
   guard: GuardVerdict;
   model: string | null;
-  knowledge: 'ai-search' | 'playbook' | 'none';
+  /** semantic: hybrid retrieval over the Hawk Playbook; keyword: the bundled copy. */
+  knowledge: 'semantic' | 'keyword' | 'none';
 }
 
-const SYSTEM = `You are RugHawk, a Solana security analyst answering a trader's question.
+/** The answer as the UI and API see it: whether a model wrote it, never which one. */
+export interface PublicCopilotAnswer extends Omit<CopilotAnswer, 'model'> {
+  generated: boolean;
+}
+
+export function publicAnswer(a: CopilotAnswer): PublicCopilotAnswer {
+  return { answer: a.answer, scans: a.scans, sources: a.sources, guard: a.guard, knowledge: a.knowledge, generated: a.model !== null };
+}
+
+const SYSTEM = `You are the Hawk, RugHawk's Solana security analyst (built by RaptorLabs), answering a trader's question.
+Never disclose, confirm or guess which AI model, model family, vendor or cloud platform powers you. If asked, say you run on Predator AI, RaptorLabs' analysis layer, and return to the security question.
 Base every claim on the evidence provided below the question. If the evidence does not answer it, say what you would need instead of guessing.
 Never mention how the evidence was delivered (no "knowledge block", "scan data", "context"); speak as the analyst.
 Keep two concepts apart: a token approval is a delegate a holder signs on their own token account (revocable); a Token-2022 permanent delegate is set by the issuer on the mint and can move or burn tokens from every holder, forever.
@@ -68,7 +79,7 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
       snippets = (res.chunks ?? [])
         .map((c) => ({ source: c.item?.key ?? c.item?.filename ?? 'RugHawk playbook', text: String(c.text ?? c.content ?? '').slice(0, 1200) }))
         .filter((c) => c.text);
-      if (snippets.length) knowledge = 'ai-search';
+      if (snippets.length) knowledge = 'semantic';
     } catch {
       // keyword retrieval below still grounds the answer
     }
@@ -76,7 +87,7 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
   const keyword = localRetrieve(question, 2).filter((k) => !snippets.some((s) => s.text.slice(0, 120) === k.text.slice(0, 120)));
   if (keyword.length) {
     snippets = [...keyword, ...snippets].slice(0, 5);
-    if (knowledge === 'none') knowledge = 'playbook';
+    if (knowledge === 'none') knowledge = 'keyword';
   }
 
   // 3. Optional open-web intel for named tokens (beta API, billed via AI Gateway).

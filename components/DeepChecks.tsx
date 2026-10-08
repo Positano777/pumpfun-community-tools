@@ -2,15 +2,15 @@
 
 import { useEffect, useState } from 'react';
 import type { DnaMatch, Socials } from '@/lib/scan/types';
-import type { SiteReview } from '@/lib/ai/site';
-import type { LogoReview } from '@/lib/ai/vision';
+import type { PublicSiteReview } from '@/lib/ai/site';
+import type { PublicLogoReview } from '@/lib/ai/vision';
 import { Section } from './ui';
 import { plural } from '@/lib/format';
 
 export function DeepChecks({ mint, website, socials, dna }: { mint: string; website: string | null; socials: Socials; dna: DnaMatch[] }) {
-  const [site, setSite] = useState<SiteReview | null>(null);
+  const [site, setSite] = useState<PublicSiteReview | null>(null);
   const [siteBusy, setSiteBusy] = useState(false);
-  const [logo, setLogo] = useState<{ review: LogoReview | null; impersonation: boolean } | null>(null);
+  const [logo, setLogo] = useState<{ review: PublicLogoReview | null; impersonation: boolean } | null>(null);
   const [logoBusy, setLogoBusy] = useState(false);
   const [watching, setWatching] = useState(false);
   const [alerts, setAlerts] = useState<{ severity: string; message: string; created_at: number }[]>([]);
@@ -50,7 +50,7 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <Section title="Website forensics" kicker="Browser Run + Workers AI">
+      <Section title="Website forensics" kicker="Browser Run + Predator AI">
         <div className="space-y-1.5 text-sm">
           <div className="flex justify-between gap-2"><span className="text-muted">Website</span>{website ? <a href={website} target="_blank" rel="noreferrer noopener nofollow" className="truncate text-bone underline underline-offset-4">{socials.domain ?? website}</a> : <span className="text-muted">none</span>}</div>
           <div className="flex justify-between gap-2"><span className="text-muted">Domain age</span><span className={socials.domainAgeDays !== null && socials.domainAgeDays < 30 ? 'text-caution' : ''}>{socials.domainAgeDays !== null ? plural(socials.domainAgeDays, 'day') : 'unknown'}</span></div>
@@ -77,7 +77,7 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
 
       <Section title="Identity forensics" kicker="Vision + Scam DNA">
         <button type="button" onClick={runLogo} disabled={logoBusy} className="btn-ghost w-full text-xs">
-          {logoBusy ? 'Llama 4 Scout is looking...' : 'Check the logo for brand impersonation'}
+          {logoBusy ? 'Predator AI is looking...' : 'Check the logo for brand impersonation'}
         </button>
         {logo ? (
           <div className="mt-3 text-sm">

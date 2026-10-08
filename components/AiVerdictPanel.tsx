@@ -1,10 +1,10 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import type { AiVerdict } from '@/lib/scan/types';
+import type { PublicAiVerdict } from '@/lib/scan/types';
 
 export function AiVerdictPanel({ kind, address, score }: { kind: 'token' | 'wallet'; address: string; score: number }) {
-  const [verdict, setVerdict] = useState<AiVerdict | null>(null);
+  const [verdict, setVerdict] = useState<PublicAiVerdict | null>(null);
   const [state, setState] = useState<'loading' | 'ready' | 'unavailable'>('loading');
   const [speaking, setSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -14,7 +14,7 @@ export function AiVerdictPanel({ kind, address, score }: { kind: 'token' | 'wall
     setState('loading');
     fetch(`/api/ai/verdict?kind=${kind}&address=${address}`)
       .then((r) => r.json())
-      .then((d: { verdict?: AiVerdict | null }) => {
+      .then((d: { verdict?: PublicAiVerdict | null }) => {
         if (!alive) return;
         if (d.verdict) {
           setVerdict(d.verdict);
@@ -52,7 +52,7 @@ export function AiVerdictPanel({ kind, address, score }: { kind: 'token' | 'wall
     <div className="card relative overflow-hidden p-5 md:p-6">
       <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-signal/70 to-transparent" />
       <div className="flex items-center justify-between gap-3">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Hawk verdict · Workers AI</div>
+        <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Hawk verdict · Predator AI</div>
         {verdict ? (
           <button type="button" onClick={listen} disabled={speaking} className="btn-ghost !px-3 !py-1.5 text-xs">
             {speaking ? 'Speaking...' : 'Listen'}
@@ -94,7 +94,7 @@ export function AiVerdictPanel({ kind, address, score }: { kind: 'token' | 'wall
             ) : null}
           </div>
           <div className="mt-4 text-[11px] text-muted">
-            Explains the deterministic findings; it cannot change the score. Model: {verdict.model.split('/').pop()} · confidence {verdict.confidence}
+            Explains the deterministic findings; it cannot change the score. Confidence {verdict.confidence}
           </div>
         </div>
       )}

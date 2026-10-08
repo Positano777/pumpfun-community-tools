@@ -49,13 +49,20 @@ Design rule: **the engine decides, the LLM explains.** The score is deterministi
 | Rate Limiting bindings | Per-IP limits on scans, AI and the RPC relay |
 | Cron Triggers | Watchtower re-scans every 10 minutes |
 
-RPC: dedicated QuickNode Solana mainnet endpoint (id 672448), capped at 20 rps so a scan burst can never starve Solmint's production endpoints on the shared account; CORS disabled because only the Worker calls it.
+RPC: two providers side by side, routed per method in `lib/rpc.ts` (measured on mainnet 2026-10-08):
+
+| Provider | Role | Gets |
+|---|---|---|
+| QuickNode endpoint 672714 (label RugHawk) | Archive node (`getFirstAvailableBlock` = 0) | Every history walk (`getSignaturesForAddress`), heavy index methods (`getTokenLargestAccounts`: 0.3 s here, 13 to 20+ s on Ankr), transaction submission, half of the state reads |
+| Ankr Solana | Hot-state node (keeps about 14 hours of ledger; older blocks answer "cleaned up", older transactions answer null) | The other half of the state reads, `getTransaction` and `getBlock` for slots inside its retention window (probed every 10 minutes) |
+
+Each provider has its own per-isolate budget (20 rps by default, `QUICKNODE_RPC_RPS` / `ANKR_RPC_RPS`); the QuickNode account cap is 50 rps shared with Solmint's production endpoints. A provider that answers 429 or 5xx is cooled down and the other one takes the traffic; a null transaction from the hot node is re-checked on the archive node before it is believed. Reports carry the per-provider call split (`rpcProviders`).
 
 ## Run it
 
 ```bash
 npm install
-cp .dev.vars.example .dev.vars        # add QUICKNODE_RPC_URL
+cp .dev.vars.example .dev.vars        # add QUICKNODE_RPC_URL and ANKR_RPC_URL
 npm run scan -- token <mint>          # engine against mainnet from the terminal
 npm run scan -- wallet <address>
 npm run dev                           # Next.js dev server
@@ -85,7 +92,7 @@ npx wrangler login
 | `GET /api/og/token/<mint>` | Shareable 1200x630 risk card |
 | `GET /api/feed` | Latest flagged tokens + totals |
 | `POST /api/watch`, `GET /api/watch?address=` | Watchtower |
-| `GET /api/health` | Bindings + RPC provider health |
+| `GET /api/health` | Service and RPC provider health |
 
 ## Validation (production, 2026-10-07)
 

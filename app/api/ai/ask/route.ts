@@ -1,5 +1,5 @@
 import { getEnv } from '@/lib/env';
-import { askHawk } from '@/lib/ai/copilot';
+import { askHawk, publicAnswer } from '@/lib/ai/copilot';
 import { fail, json, originAllowed } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
           .map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content as string }))
       : [];
     const { env, ctx } = await getEnv();
-    return json(await askHawk(env, ctx, question, history));
+    return json(publicAnswer(await askHawk(env, ctx, question, history)));
   } catch (e) {
     return fail(e);
   }

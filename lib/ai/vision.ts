@@ -14,6 +14,13 @@ export interface LogoReview {
   model: string;
 }
 
+/** The review as the UI and API see it: no model identifiers. */
+export type PublicLogoReview = Omit<LogoReview, 'model'>;
+
+export function publicLogoReview(r: LogoReview): PublicLogoReview {
+  return { brand: r.brand, confidence: r.confidence, description: r.description };
+}
+
 const SCHEMA = {
   type: 'object',
   properties: {

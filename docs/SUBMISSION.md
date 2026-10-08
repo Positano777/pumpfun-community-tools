@@ -28,7 +28,7 @@ Judging criteria Colosseum publishes: functionality, potential impact, novelty, 
 
 ## Technical demo script (3:00)
 
-1. Architecture slide: one Cloudflare Worker (Next.js 16 via OpenNext) + QuickNode; Workers AI through AI Gateway; D1, KV, R2, Vectorize, Browser Run, AI Search.
+1. Architecture slide: one Cloudflare Worker (Next.js 16 via OpenNext) + QuickNode (archive) and Ankr (hot state), routed per method; Workers AI through AI Gateway; D1, KV, R2, Vectorize, Browser Run, AI Search.
 2. Terminal: `npm run scan -- token <fresh mint>`: show the RPC call count and timing.
 3. The hard part: a hot launch with thousands of transactions. Show the creator discovered from the pump.fun bonding curve (offset 49), the fee-sharing PDA hop, the `getBlock` read of the launch slot.
 4. Context-aware scoring: PYUSD (permanent delegate expected for a regulated issuer), BONK (exchange custody recognised).

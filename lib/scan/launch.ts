@@ -89,10 +89,10 @@ export async function analyzeLaunch(ctx: ScanContext, input: LaunchInput, hints:
   if (first.reachedStart && first.sigs.length) {
     const chronological = [...first.sigs].reverse();
     const creationSig = chronological.find((s) => !s.err) ?? chronological[0];
-    const creationTx = await ctx.rpc.getTransaction(creationSig.signature);
+    const creationTx = await ctx.rpc.getTransaction(creationSig.signature, creationSig.slot);
     if (!creationTx) return { launch: emptyLaunch(first.sigs.length), findings: [] };
     const early = chronological.filter((s) => s.signature !== creationSig.signature && !s.err && s.slot <= creationTx.slot + 1).slice(0, 15);
-    const earlyTxs = early.length ? await ctx.rpc.getTransactions(early.map((s) => s.signature), 4) : [];
+    const earlyTxs = early.length ? await ctx.rpc.getTransactions(early, 4) : [];
     return finish(ctx, input, creationSig.signature, creationTx, earlyTxs, first.sigs);
   }
 
@@ -118,7 +118,7 @@ export async function analyzeLaunch(ctx: ScanContext, input: LaunchInput, hints:
     // fee payer.
     if (sigs.length && sigs.length < 1000) {
       const oldest = [...sigs].reverse().find((s) => !s.err);
-      const tx = oldest ? await ctx.rpc.getTransaction(oldest.signature).catch(() => null) : null;
+      const tx = oldest ? await ctx.rpc.getTransaction(oldest.signature, oldest.slot).catch(() => null) : null;
       const payer = tx ? feePayer(tx) : null;
       if (payer && !tried.has(payer)) queue.unshift(payer);
     }
@@ -130,7 +130,7 @@ export async function analyzeLaunch(ctx: ScanContext, input: LaunchInput, hints:
     if (curveHist?.reachedStart && curveHist.sigs.length) {
       const chronological = [...curveHist.sigs].reverse();
       const creationSig = chronological.find((s) => !s.err) ?? chronological[0];
-      const creationTx = await ctx.rpc.getTransaction(creationSig.signature);
+      const creationTx = await ctx.rpc.getTransaction(creationSig.signature, creationSig.slot);
       if (creationTx && createsMint(creationTx, input.mint)) {
         const blockTxs = await creationBlockBuyers(ctx, input.mint, creationTx.slot, creationSig.signature);
         return finish(ctx, input, creationSig.signature, creationTx, blockTxs, null);
@@ -145,10 +145,10 @@ export async function analyzeLaunch(ctx: ScanContext, input: LaunchInput, hints:
       const all = [...first.sigs, ...more.sigs];
       const chronological = [...all].reverse();
       const creationSig = chronological.find((s) => !s.err) ?? chronological[0];
-      const creationTx = await ctx.rpc.getTransaction(creationSig.signature);
+      const creationTx = await ctx.rpc.getTransaction(creationSig.signature, creationSig.slot);
       if (creationTx) {
         const early = chronological.filter((s) => s.signature !== creationSig.signature && !s.err && s.slot <= creationTx.slot + 1).slice(0, 15);
-        const earlyTxs = early.length ? await ctx.rpc.getTransactions(early.map((s) => s.signature), 4) : [];
+        const earlyTxs = early.length ? await ctx.rpc.getTransactions(early, 4) : [];
         return finish(ctx, input, creationSig.signature, creationTx, earlyTxs, all);
       }
     }
@@ -212,7 +212,7 @@ async function findCreation(
     pool = pool.reverse();
   }
   const probe = pool.slice(0, 10);
-  const txs = await ctx.rpc.getTransactions(probe.map((s) => s.signature), 3);
+  const txs = await ctx.rpc.getTransactions(probe, 3);
   const i = txs.findIndex((tx) => tx && createsMint(tx, mint));
   return { found: i >= 0 ? { signature: probe[i].signature, tx: txs[i]!, creatorSigs: sigs } : null, sigs };
 }
@@ -310,7 +310,7 @@ async function finish(
       .filter((s) => !s.err && s.signature !== creationSignature && (createdAt === null || (s.blockTime ?? 0) >= createdAt))
       .reverse()
       .slice(0, 12);
-    const txs = after.length ? await ctx.rpc.getTransactions(after.map((s) => s.signature), 4) : [];
+    const txs = after.length ? await ctx.rpc.getTransactions(after, 4) : [];
     txs.forEach((tx, i) => {
       if (!tx) return;
       const d = ownerDelta(tx, input.mint, deployer);

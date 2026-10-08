@@ -23,7 +23,7 @@ export async function profileDeployer(
   const ageHoursAtLaunch = firstSeen && launchedAt ? Math.max(0, (launchedAt - firstSeen) / 3600) : null;
 
   // Serial-launcher sample: the most recent transactions, looking for mint creations.
-  const sample = history.sigs.filter((s) => !s.err).slice(0, SERIAL_SAMPLE).map((s) => s.signature);
+  const sample = history.sigs.filter((s) => !s.err).slice(0, SERIAL_SAMPLE);
   const txs = await ctx.rpc.getTransactions(sample, 4);
   const created = new Map<string, { mint: string; signature: string; time: number | null }>();
   txs.forEach((tx, i) => {
@@ -32,7 +32,7 @@ export async function profileDeployer(
       if (ix.programId !== TOKEN_PROGRAM && ix.programId !== TOKEN_2022_PROGRAM) continue;
       if (typeof ix.parsed !== 'object' || !/^initializeMint/.test(ix.parsed?.type ?? '')) continue;
       const mint = ix.parsed?.info?.mint as string | undefined;
-      if (mint && mint !== currentMint && !created.has(mint)) created.set(mint, { mint, signature: sample[i], time: tx.blockTime ?? null });
+      if (mint && mint !== currentMint && !created.has(mint)) created.set(mint, { mint, signature: sample[i].signature, time: tx.blockTime ?? null });
     }
   });
   const tokensCreated = [...created.values()];

@@ -66,6 +66,9 @@ export interface AppEnv {
   QUICKNODE_RPC_URL?: string;
   HELIUS_RPC_URL?: string;
   ANKR_RPC_URL?: string;
+  /** Optional per-isolate request budgets (requests per second, default 20 each). */
+  QUICKNODE_RPC_RPS?: string;
+  ANKR_RPC_RPS?: string;
   AI_GATEWAY_ID?: string;
   AI_SEARCH_INSTANCE?: string;
   ADMIN_TOKEN?: string;

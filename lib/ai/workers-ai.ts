@@ -139,7 +139,7 @@ export function parseSse(buffer: string): { texts: string[]; rest: string; done:
     const payload = t.slice(5).trim();
     if (payload === '[DONE]') {
       done = true;
-      continue;
+      break;
     }
     try {
       const j = JSON.parse(payload) as { response?: unknown; choices?: { delta?: { content?: unknown } }[] };
@@ -152,7 +152,8 @@ export function parseSse(buffer: string): { texts: string[]; rest: string; done:
   return { texts, rest, done };
 }
 
-function textDeltas(bytes: ReadableStream<Uint8Array>): ReadableStream<string> {
+/** Workers AI server-sent events (bytes) as a stream of text deltas; closes on [DONE] or when the source ends. */
+export function sseTextStream(bytes: ReadableStream<Uint8Array>): ReadableStream<string> {
   const reader = bytes.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
@@ -184,7 +185,7 @@ export async function streamText(ai: AiBinding, gatewayId: string | undefined, m
   for (const m of model === MODELS.textFallback ? [model] : [model, MODELS.textFallback]) {
     try {
       const { result } = await runModel(ai, m, { messages, max_tokens: maxTokens, stream: true }, gatewayId, gateway);
-      if (result instanceof ReadableStream) return { stream: textDeltas(result as ReadableStream<Uint8Array>), model: m };
+      if (result instanceof ReadableStream) return { stream: sseTextStream(result as ReadableStream<Uint8Array>), model: m };
       const text = extractText(result);
       if (text) return { stream: once(text), model: m };
     } catch (e) {

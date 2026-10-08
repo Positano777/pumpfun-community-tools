@@ -56,3 +56,52 @@ test('ai: only the supported verdict languages pass validation', () => {
   assert.equal(isLanguage('constructor'), false);
   assert.equal(isLanguage(42), false);
 });
+
+import { sseTextStream } from '../lib/ai/workers-ai';
+import { sseResponse } from '../lib/ai/sse';
+
+function bytes(chunks: string[]): ReadableStream<Uint8Array> {
+  const enc = new TextEncoder();
+  return new ReadableStream<Uint8Array>({
+    start(c) {
+      for (const ch of chunks) c.enqueue(enc.encode(ch));
+      c.close();
+    },
+  });
+}
+
+async function drain(stream: ReadableStream<string>): Promise<string[]> {
+  const out: string[] = [];
+  const reader = stream.getReader();
+  while (true) {
+    const { value, done } = await reader.read();
+    if (done) return out;
+    out.push(value);
+  }
+}
+
+test('ai: model events split across chunks become text deltas and stop at [DONE]', async () => {
+  const src = bytes(['data: {"response":"Hel"}\n\ndata: {"resp', 'onse":"lo"}\n\ndata: [DONE]\n\ndata: {"response":"ignored"}\n\n']);
+  assert.deepEqual(await drain(sseTextStream(src)), ['Hel', 'lo']);
+  const noDone = bytes(['data: {"response":"a"}\n\ndata: {"response":"b"}\n']);
+  assert.deepEqual(await drain(sseTextStream(noDone)), ['a', 'b']);
+});
+
+test('ai: the streamed answer ends with a done event after every delta', async () => {
+  const stream = new ReadableStream<string>({
+    start(c) {
+      c.enqueue('one — ');
+      c.enqueue('two');
+      c.close();
+    },
+  });
+  const res = sseResponse({ generated: true }, stream, (t) => t.replace(/—/g, ', '));
+  assert.equal(res.headers.get('content-type'), 'text/event-stream; charset=utf-8');
+  const text = await res.text();
+  const events = text.split('\n\n').filter(Boolean);
+  assert.equal(events[0], 'event: meta\ndata: {"generated":true}');
+  assert.equal(events[1], 'event: delta\ndata: {"t":"one ,  "}');
+  assert.equal(events[2], 'event: delta\ndata: {"t":"two"}');
+  assert.equal(events[3], 'event: done\ndata: {}');
+  assert.equal(events.length, 4);
+});

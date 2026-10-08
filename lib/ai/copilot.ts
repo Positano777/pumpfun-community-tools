@@ -160,7 +160,7 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
   if (p.blocked) return { answer: p.blocked, scans: [], sources: [], guard: p.guard, model: null, knowledge: 'none' };
   const out = env.AI ? await generateText(env.AI, env.AI_GATEWAY_ID, p.messages, 600, { label: 'copilot' }) : null;
   return {
-    answer: (out?.text ?? p.fallback).replace(/—/g, ', '),
+    answer: (out?.text ?? p.fallback).replace(/\u2014/g, ', '),
     scans: p.scans,
     sources: p.sources,
     guard: p.guard,
@@ -170,12 +170,14 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
 }
 
 /** Same copilot, answer streamed: the metadata is known before the first token. */
-export async function askHawkStream(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: Turn[] = []): Promise<{ meta: CopilotMeta; stream: ReadableStream<string> }> {
+export async function askHawkStream(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: Turn[] = []): Promise<{ meta: CopilotMeta; stream: ReadableStream<string>; fallback: string }> {
   const p = await prepare(env, cfctx, question, history);
-  if (p.blocked) return { meta: { scans: [], sources: [], guard: p.guard, knowledge: 'none', generated: false }, stream: once(p.blocked) };
+  if (p.blocked) return { meta: { scans: [], sources: [], guard: p.guard, knowledge: 'none', generated: false }, stream: once(p.blocked), fallback: p.blocked };
   const out = env.AI ? await streamText(env.AI, env.AI_GATEWAY_ID, p.messages, 600, { label: 'copilot' }) : null;
+  const fallback = p.scans.length ? p.fallback : 'The hawk could not write an answer just now. Ask again in a moment.';
   return {
     meta: { scans: p.scans, sources: p.sources, guard: p.guard, knowledge: p.knowledge, generated: Boolean(out) },
     stream: out?.stream ?? once(p.fallback),
+    fallback,
   };
 }

@@ -4,7 +4,7 @@
  * an explicit writer outside the stream's start hook, which is the pattern
  * the Workers runtime streams reliably.
  */
-export function sseResponse(meta: unknown, stream: ReadableStream<string>, transform: (t: string) => string = (t) => t): Response {
+export function sseResponse(meta: unknown, stream: ReadableStream<string>, transform: (t: string) => string = (t) => t, fallback = ''): Response {
   const { readable, writable } = new TransformStream<Uint8Array, Uint8Array>();
   const writer = writable.getWriter();
   const encoder = new TextEncoder();
@@ -13,12 +13,18 @@ export function sseResponse(meta: unknown, stream: ReadableStream<string>, trans
     try {
       await send('meta', meta);
       const reader = stream.getReader();
+      let wrote = false;
       try {
         while (true) {
           const { value, done } = await reader.read();
           if (done) break;
-          if (value) await send('delta', { t: transform(value) });
+          if (value) {
+            wrote = true;
+            await send('delta', { t: transform(value) });
+          }
         }
+        // A model stream that produced nothing still gets a readable answer.
+        if (!wrote && fallback) await send('delta', { t: transform(fallback) });
         await send('done', {});
       } catch {
         await send('error', { message: 'The hawk lost the thread. Ask again.' }).catch(() => undefined);

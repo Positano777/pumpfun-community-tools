@@ -45,7 +45,7 @@ test('ai: market pulse counts patterns from the engine findings inside the windo
   const text = fallbackPulse(s);
   assert.match(text.headline, /2 launches flagged/);
   assert.match(text.body, /1 graded CRITICAL and 1 HIGH/);
-  assert.doesNotMatch(`${text.headline}${text.body}${text.watch}`, /—/);
+  assert.doesNotMatch(`${text.headline}${text.body}${text.watch}`, /\u2014/);
   assert.match(fallbackPulse(pulseStats([], now)).headline, /Quiet skies/);
 });
 
@@ -116,12 +116,12 @@ test('ai: a model stream that never closes still ends after a short idle gap', a
 test('ai: the streamed answer ends with a done event after every delta', async () => {
   const stream = new ReadableStream<string>({
     start(c) {
-      c.enqueue('one — ');
+      c.enqueue('one \u2014 ');
       c.enqueue('two');
       c.close();
     },
   });
-  const res = sseResponse({ generated: true }, stream, (t) => t.replace(/—/g, ', '));
+  const res = sseResponse({ generated: true }, stream, (t) => t.replace(/\u2014/g, ', '));
   assert.equal(res.headers.get('content-type'), 'text/event-stream; charset=utf-8');
   const text = await res.text();
   const events = text.split('\n\n').filter(Boolean);
@@ -142,5 +142,13 @@ test('ai: the pulse brief uses plain labels and the output is tidied', () => {
   assert.deepEqual(brief.behavioursSeenAmongFlaggedTokens, { 'deployer exits': 1, 'fresh deployer wallets': 1 });
   assert.equal(brief.mostRecent[0], '$DUCK (CRITICAL 80/100, 0 minutes ago)');
   assert.equal(tidy('Market Pulse: Fresh wallets, early exits'), 'Fresh wallets, early exits');
-  assert.equal(tidy('  Three launches — two exits  '), 'Three launches , two exits');
+  assert.equal(tidy('  Three launches \u2014 two exits  '), 'Three launches , two exits');
+});
+
+test('ai: an empty model stream still answers with the fallback text', async () => {
+  const empty = new ReadableStream<string>({ start(c) { c.close(); } });
+  const text = await sseResponse({ generated: true }, empty, (t) => t, 'Ask again in a moment.').text();
+  const events = text.split('\n\n').filter(Boolean);
+  assert.equal(events[1], 'event: delta\ndata: {"t":"Ask again in a moment."}');
+  assert.equal(events[2], 'event: done\ndata: {}');
 });

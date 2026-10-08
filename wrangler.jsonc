@@ -13,11 +13,9 @@
   "assets": { "directory": ".open-next/assets", "binding": "ASSETS" },
   "workers_dev": true,
 
-  // Attach once the domain is on Cloudflare (buy rughawk.com, add the zone):
-  // "routes": [
-  //   { "pattern": "rughawk.com", "custom_domain": true },
-  //   { "pattern": "www.rughawk.com", "custom_domain": true }
-  // ],
+  // Custom domain (zone rughawk.xyz is on this account). Declared here so a
+  // deploy can never detach what the dashboard attached.
+  "routes": [{ "pattern": "rughawk.xyz", "custom_domain": true }],
 
   "observability": { "enabled": true },
 
@@ -81,9 +79,8 @@
   //   ADMIN_TOKEN         protects /api/admin/*
   //   CRON_SECRET         authenticates the Watchtower cron call
   "vars": {
-    // Switch to https://rughawk.com (here and in .env.production) once the
-    // domain is on Cloudflare and the routes above are enabled.
-    "NEXT_PUBLIC_APP_URL": "https://rughawk.plain-forest-6a44.workers.dev",
+    // Canonical public URL; also in .env.production (inlined at build time).
+    "NEXT_PUBLIC_APP_URL": "https://rughawk.xyz",
     // `default` is created automatically by AI Gateway on first use. For
     // per-app logs, caching, Guardrails and a spend limit, create a gateway
     // named `rughawk-ai` (dashboard: AI > AI Gateway) and put its id here.

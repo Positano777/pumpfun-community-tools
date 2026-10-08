@@ -16,7 +16,7 @@ export function fail(e: unknown, fallbackStatus = 500) {
   return json({ error: status >= 500 ? 'Scan failed. The network or a provider is slow; try again in a moment.' : message, detail: status >= 500 ? message.slice(0, 200) : undefined }, { status });
 }
 
-const ALLOWED_HOSTS = ['rughawk.com', 'rughawk.app', 'rughawk.dev'];
+const ALLOWED_HOSTS = ['rughawk.xyz', 'rughawk.com', 'rughawk.app', 'rughawk.dev'];
 
 export function hostAllowed(origin: string): boolean {
   try {

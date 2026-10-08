@@ -62,7 +62,7 @@ export default {
   },
 
   async scheduled(controller, env, ctx) {
-    const base = env.NEXT_PUBLIC_APP_URL || 'https://rughawk.com';
+    const base = env.NEXT_PUBLIC_APP_URL || 'https://rughawk.xyz';
     ctx.waitUntil(
       env.WORKER_SELF_REFERENCE.fetch(`${base}/api/cron/watch`, {
         method: 'POST',

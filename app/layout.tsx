@@ -8,7 +8,7 @@ import { Footer } from '@/components/Footer';
 const sans = Inter({ subsets: ['latin'], variable: '--font-sans', display: 'swap' });
 const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono', display: 'swap' });
 
-const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://rughawk.com';
+const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://rughawk.xyz';
 
 export const metadata: Metadata = {
   metadataBase: new URL(APP_URL),

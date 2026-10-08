@@ -15,7 +15,10 @@
 
   // Custom domain (zone rughawk.xyz is on this account). Declared here so a
   // deploy can never detach what the dashboard attached.
-  "routes": [{ "pattern": "rughawk.xyz", "custom_domain": true }],
+  "routes": [
+    { "pattern": "rughawk.xyz", "custom_domain": true },
+    { "pattern": "www.rughawk.xyz", "custom_domain": true }
+  ],
 
   "observability": { "enabled": true },
 

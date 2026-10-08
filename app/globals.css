@@ -36,6 +36,77 @@ body {
   @apply rounded-2xl border border-graphite/70 bg-coal/70 backdrop-blur-sm;
 }
 
+/*
+ * Edge light: a soft crimson glint that travels along the inside of every
+ * container's rounded border and breathes while it goes. The ring is a
+ * conic gradient masked to a 1px frame; the angle is a registered custom
+ * property so the light moves instead of jumping. Browsers without
+ * @property show a still glint at the top; reduced-motion users get a
+ * static, dimmer ring.
+ */
+@property --hawk-angle {
+  syntax: '<angle>';
+  inherits: false;
+  initial-value: 0deg;
+}
+
+.card,
+.edge-light {
+  position: relative;
+  isolation: isolate;
+}
+
+.card::before,
+.edge-light::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: calc(1rem - 1px);
+  padding: 1px;
+  --hawk-angle: 0deg;
+  background: conic-gradient(
+    from var(--hawk-angle),
+    transparent 0deg,
+    transparent 286deg,
+    rgba(214, 59, 59, 0.08) 300deg,
+    rgba(214, 59, 59, 0.5) 334deg,
+    rgba(255, 150, 150, 0.95) 352deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none;
+  animation: hawk-travel 9s linear infinite, hawk-pulse 3.6s ease-in-out infinite;
+}
+
+.card:nth-child(2n)::before,
+.edge-light:nth-child(2n)::before {
+  animation-delay: -3s, -1.2s;
+}
+.card:nth-child(3n)::before {
+  animation-delay: -6s, -2.4s;
+}
+
+@keyframes hawk-travel {
+  from { --hawk-angle: 0deg; }
+  to { --hawk-angle: 360deg; }
+}
+@keyframes hawk-pulse {
+  0%, 100% { opacity: 0.45; }
+  50% { opacity: 1; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card::before,
+  .edge-light::before {
+    animation: none;
+    opacity: 0.5;
+  }
+}
+
 .chip {
   @apply inline-flex items-center gap-1.5 rounded-full border px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wider;
 }

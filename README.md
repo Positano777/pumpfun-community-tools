@@ -4,7 +4,7 @@
 
 Colosseum **Crypto World's Fair** hackathon entry (Solana track).
 
-**Live:** https://rughawk.xyz (custom domain on the Worker; https://rughawk.plain-forest-6a44.workers.dev remains the fallback hostname).
+**Live:** https://rughawk.xyz (custom domain on the Worker; `www.rughawk.xyz` redirects to it; https://rughawk.plain-forest-6a44.workers.dev remains the fallback hostname).
 
 ---
 
@@ -85,7 +85,10 @@ npx wrangler login
 | `GET /api/scan/wallet?address=` | Wallet / program report |
 | `GET /api/shield?owner=` | Approvals, seizable tokens, reclaimable rent |
 | `GET /api/ai/verdict?kind=&address=` | AI verdict (cached per score) |
-| `POST /api/ai/ask` | Copilot |
+| `POST /api/ai/ask` | Copilot; `stream: true` returns server-sent events (`meta`, `delta`, `done`) |
+| `POST /api/ai/transcribe` | Spoken question (audio body) as text |
+| `POST /api/ai/translate` | Verdict in another language (`kind`, `address`, `score`, `lang`) |
+| `GET /api/ai/pulse` | 24-hour market pulse: engine counts, phrased by Predator AI, cached 10 minutes |
 | `POST /api/ai/speak` | Spoken verdict (audio/mpeg) |
 | `POST /api/ai/site` | Browser Run site review |
 | `GET /api/ai/logo?mint=` | Logo brand-impersonation check |

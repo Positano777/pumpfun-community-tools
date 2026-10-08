@@ -21,6 +21,9 @@ export const MODELS = {
   embed: '@cf/baai/bge-base-en-v1.5',
   safety: '@cf/meta/llama-guard-3-8b',
   tts: '@cf/deepgram/aura-1',
+  rerank: '@cf/baai/bge-reranker-base',
+  transcribe: '@cf/openai/whisper-large-v3-turbo',
+  translate: '@cf/meta/m2m100-1.2b',
 } as const;
 
 export interface GatewayOpts {
@@ -119,4 +122,84 @@ export async function generateText(ai: AiBinding, gatewayId: string | undefined,
     }
   }
   return null;
+}
+
+/**
+ * Parse Workers AI server-sent events into text deltas. Returns the pieces
+ * found, the unconsumed tail (a partial line) and whether [DONE] was seen.
+ */
+export function parseSse(buffer: string): { texts: string[]; rest: string; done: boolean } {
+  const texts: string[] = [];
+  let done = false;
+  const lines = buffer.split('\n');
+  const rest = lines.pop() ?? '';
+  for (const line of lines) {
+    const t = line.trim();
+    if (!t.startsWith('data:')) continue;
+    const payload = t.slice(5).trim();
+    if (payload === '[DONE]') {
+      done = true;
+      continue;
+    }
+    try {
+      const j = JSON.parse(payload) as { response?: unknown; choices?: { delta?: { content?: unknown } }[] };
+      const piece = typeof j.response === 'string' ? j.response : typeof j.choices?.[0]?.delta?.content === 'string' ? j.choices[0].delta.content : '';
+      if (piece) texts.push(piece);
+    } catch {
+      // a line that is not JSON (comments, keep-alives) carries no text
+    }
+  }
+  return { texts, rest, done };
+}
+
+function textDeltas(bytes: ReadableStream<Uint8Array>): ReadableStream<string> {
+  const reader = bytes.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+  return new ReadableStream<string>({
+    async pull(controller) {
+      const { value, done } = await reader.read();
+      if (done) {
+        for (const t of parseSse(`${buffer}\n`).texts) controller.enqueue(t);
+        controller.close();
+        return;
+      }
+      buffer += decoder.decode(value, { stream: true });
+      const parsed = parseSse(buffer);
+      buffer = parsed.rest;
+      for (const t of parsed.texts) controller.enqueue(t);
+      if (parsed.done) {
+        controller.close();
+        await reader.cancel().catch(() => undefined);
+      }
+    },
+    cancel() {
+      return reader.cancel().catch(() => undefined);
+    },
+  });
+}
+
+/** Token-by-token generation; falls back to the secondary model, then to a one-chunk stream of a plain answer. */
+export async function streamText(ai: AiBinding, gatewayId: string | undefined, messages: { role: string; content: unknown }[], maxTokens = 900, gateway?: GatewayOpts, model: string = MODELS.text): Promise<{ stream: ReadableStream<string>; model: string } | null> {
+  for (const m of model === MODELS.textFallback ? [model] : [model, MODELS.textFallback]) {
+    try {
+      const { result } = await runModel(ai, m, { messages, max_tokens: maxTokens, stream: true }, gatewayId, gateway);
+      if (result instanceof ReadableStream) return { stream: textDeltas(result as ReadableStream<Uint8Array>), model: m };
+      const text = extractText(result);
+      if (text) return { stream: once(text), model: m };
+    } catch (e) {
+      console.warn(`[ai] ${m} stream failed:`, e instanceof Error ? e.message : e);
+    }
+  }
+  return null;
+}
+
+/** A finished answer as a one-chunk stream, so callers have a single code path. */
+export function once(text: string): ReadableStream<string> {
+  return new ReadableStream<string>({
+    start(controller) {
+      controller.enqueue(text);
+      controller.close();
+    },
+  });
 }

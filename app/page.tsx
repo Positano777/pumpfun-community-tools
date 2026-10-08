@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { SearchBox } from '@/components/SearchBox';
 import { Feed } from '@/components/Feed';
+import { Pulse } from '@/components/Pulse';
 
 const FEATURES = [
   { k: 'Launch forensics', t: 'Reads the creation block itself', d: 'Dev buy at creation, every wallet that bought in the launch block, and how many seconds after launch the deployer started dumping.' },
@@ -12,7 +13,7 @@ const FEATURES = [
 ];
 
 const TIERS = [
-  { name: 'Free', price: '$0', per: '', items: ['25 scans a day', 'AI verdicts', 'Wallet Shield (revoke & reclaim)', 'Shareable risk cards'], cta: 'Start scanning', href: '#scan' },
+  { name: 'Free', price: '$0', per: '', items: ['25 scans a day', 'Predator AI verdicts in 9 languages', 'Ask Predator AI by text or voice', 'Wallet Shield (revoke & reclaim)', 'Shareable risk cards'], cta: 'Start scanning', href: '#scan' },
   { name: 'Pro', price: '$19', per: '/month', items: ['Unlimited scans', 'Watchtower alerts on Telegram', 'Deep site & logo forensics', 'Copilot with web intel'], cta: 'Go Pro', href: '#scan', hot: true },
   { name: 'API', price: '$99', per: '/month', items: ['50,000 scan calls', 'For trading bots, launchpads, wallets', 'Webhook alerts', 'SLA on request'], cta: 'Get API access', href: 'mailto:security@raptorlabs.dev?subject=RugHawk%20API' },
 ];
@@ -40,6 +41,7 @@ export default function Home() {
             <Link className="underline underline-offset-4 hover:text-bone" href="/token/2b1kV6DkPAnxd5ixfnxCpjxmKwqjjaYmCZfHsFu24GXo">PYUSD (Token-2022)</Link>
             <Link className="underline underline-offset-4 hover:text-bone" href="/wallet/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4">Jupiter program</Link>
           </div>
+          <Pulse />
           <div className="mt-10 text-[11px] uppercase tracking-[0.2em] text-muted">Predator AI · Vectorize · Browser Run · QuickNode · Ankr</div>
         </div>
       </section>

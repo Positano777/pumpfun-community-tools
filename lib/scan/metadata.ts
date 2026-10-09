@@ -3,6 +3,7 @@ import type { ScanContext } from './context';
 import { cached, fetchJson } from './context';
 import { decodeMetaplexMetadata } from '../solana/metaplex';
 import { metaplexMetadataPda } from '../solana/address';
+import { gatewayUrls } from '../ipfs';
 
 export interface OffchainMetadata {
   name?: string;
@@ -24,24 +25,7 @@ export interface MetadataResult {
   creators: string[];
 }
 
-/**
- * IPFS gateways in preference order. The free public path gateways are not
- * dependable (measured 2026-09-21: ipfs.io and dweb.link answering 429), so
- * several are tried with a short timeout each.
- */
-const IPFS_GATEWAYS = ['https://ipfs.filebase.io/ipfs/', 'https://ipfs.io/ipfs/', 'https://dweb.link/ipfs/'];
-
-export function gatewayUrls(uri: string): string[] {
-  const u = uri.trim();
-  const cid = u.startsWith('ipfs://') ? u.slice(7).replace(/^ipfs\//, '') : u.match(/\/ipfs\/(.+)$/)?.[1];
-  if (cid) {
-    const direct = u.startsWith('http') ? [u] : [];
-    return [...direct, ...IPFS_GATEWAYS.map((g) => g + cid)].filter((v, i, a) => a.indexOf(v) === i);
-  }
-  if (u.startsWith('ar://')) return [`https://arweave.net/${u.slice(5)}`];
-  if (u.startsWith('https://') || u.startsWith('http://')) return [u];
-  return [];
-}
+export { gatewayUrls };
 
 export async function loadMetadata(
   ctx: ScanContext,

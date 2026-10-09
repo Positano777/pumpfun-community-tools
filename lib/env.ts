@@ -13,6 +13,7 @@ export interface KVLike {
   get(key: string, type: 'json'): Promise<unknown>;
   getWithMetadata?(key: string, type: 'arrayBuffer'): Promise<{ value: ArrayBuffer | null; metadata: unknown }>;
   put(key: string, value: string | ArrayBuffer, opts?: { expirationTtl?: number; metadata?: Record<string, unknown> }): Promise<void>;
+  delete?(key: string): Promise<void>;
 }
 
 export interface D1Statement {
@@ -74,6 +75,25 @@ export interface AppEnv {
   AI_SEARCH_INSTANCE?: string;
   ADMIN_TOKEN?: string;
   NEXT_PUBLIC_APP_URL?: string;
+  /** Signs session cookies (sign-in with a Solana wallet). */
+  SESSION_SECRET?: string;
+  /** Stripe: restricted secret key (Checkout, Billing Portal, retrieval) and the webhook signing secret. */
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_WEBHOOK_SECRET?: string;
+  /** Stripe price ids for the Pro and API plans (vars). */
+  STRIPE_PRICE_PRO?: string;
+  STRIPE_PRICE_API?: string;
+  /** Payment Links: checkout without a secret key in the Worker (vars). */
+  STRIPE_PAYMENT_LINK_PRO?: string;
+  STRIPE_PAYMENT_LINK_API?: string;
+  /** Hosted customer portal login page, used when no secret key is set. */
+  STRIPE_PORTAL_URL?: string;
+  /** Plan limits (vars): free engine runs per IP per day, API calls per key per month. */
+  FREE_SCANS_PER_DAY?: string;
+  API_CALLS_PER_MONTH?: string;
+  /** Watchtower alerts on Telegram: bot token (secret) and bot username (var). */
+  TELEGRAM_BOT_TOKEN?: string;
+  TELEGRAM_BOT_NAME?: string;
   [key: string]: unknown;
 }
 

@@ -126,3 +126,15 @@ Live AI checks: Llama 4 Scout verdicts (about 4 s, gateway-routed), copilot grou
 ## Security posture
 
 Endpoint tokens live only as Worker secrets. The RPC relay is origin-checked and method-allowlisted. Every input address is validated. The copilot screens every message for injection patterns and runs Llama Guard 3 before the model sees it; the model only explains deterministic evidence and cannot trigger actions. Shield builds transactions client-side and the user signs them in their own wallet; RugHawk never holds keys. Report security issues to security@raptorlabs.dev.
+
+## Billing (Stripe)
+
+Plans match the pricing section: Free (25 fresh scans a day per IP), Pro at $19/month, API at $99/month with 50,000 scan calls a month. The wallet is the account: a visitor connects a Solana wallet, signs one message (Sign In With Solana, checked with Ed25519 in WebCrypto) and gets an HMAC-signed session cookie. Stripe Checkout carries the wallet as `client_reference_id`; the webhook at `/api/billing/webhook` mirrors subscriptions into D1 and entitlements are read from there.
+
+Stripe objects (live account): products RugHawk Pro and RugHawk API, monthly prices with lookup keys `rughawk_pro_monthly` and `rughawk_api_monthly`, one Payment Link per plan, a webhook endpoint for `checkout.session.completed`, `customer.subscription.*` and `invoice.payment_failed`, and a Billing Portal configuration with the hosted login page.
+
+Secrets (`npx wrangler secret put`): `SESSION_SECRET`, `STRIPE_WEBHOOK_SECRET`, optionally `STRIPE_SECRET_KEY` (a restricted key: with it checkout uses Checkout Sessions, management uses Billing Portal sessions, plan changes are prorated in place, and the account page activates the plan before the webhook lands; without it the Payment Links and the hosted portal page do the same job) and `TELEGRAM_BOT_TOKEN` (with the `TELEGRAM_BOT_NAME` var) for Watchtower alerts on Telegram. Vars in `wrangler.jsonc`: price ids, Payment Links, portal URL, `FREE_SCANS_PER_DAY`, `API_CALLS_PER_MONTH`.
+
+Routes: `POST /api/auth/nonce`, `POST /api/auth/verify`, `POST /api/auth/logout`, `GET /api/me`, `POST /api/billing/checkout`, `POST /api/billing/portal`, `GET /api/billing/sync`, `POST /api/account/api-key` (and DELETE), `PUT /api/account/webhook`, `POST /api/account/telegram` (and DELETE), `DELETE /api/watch`. Account page: `/account`.
+
+API plan: send `Authorization: Bearer rh_live_...` to `/api/scan/token`, `/api/scan/wallet` or `/api/scan`. Responses carry `X-RugHawk-Quota-Limit`, `X-RugHawk-Quota-Used` and `X-RugHawk-Quota-Remaining`; the quota resets on the first of the month. Watchtower alerts for API customers are POSTed to their webhook URL with `X-RugHawk-Signature: t=<unix>,v1=<HMAC-SHA256(secret, t + "." + body)>`.

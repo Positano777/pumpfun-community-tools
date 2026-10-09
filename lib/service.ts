@@ -52,7 +52,10 @@ export async function resolveKind(ctx: ScanContext, address: string): Promise<Re
   return data?.parsed?.type === 'mint' ? 'token' : 'wallet';
 }
 
-export async function tokenReport(env: AppEnv, cfctx: ExecutionCtx | null, mint: string, fresh = false): Promise<TokenReport> {
+/** Runs before the engine on a cache miss; throws to deny (free-tier quota). */
+export type ScanGate = () => Promise<void>;
+
+export async function tokenReport(env: AppEnv, cfctx: ExecutionCtx | null, mint: string, fresh = false, gate?: ScanGate): Promise<TokenReport> {
   if (!isAddress(mint)) throw new Error('Invalid Solana address');
   const ctx = scanContext(env);
   const key = `report:token:v1:${mint}`;
@@ -60,6 +63,7 @@ export async function tokenReport(env: AppEnv, cfctx: ExecutionCtx | null, mint:
     const hit = await ctx.cache.get<TokenReport>(key).catch(() => null);
     if (hit) return hit;
   }
+  if (gate) await gate();
   const report = await scanToken(ctx, mint);
   const gw = env.AI_GATEWAY_ID;
   const { matches, vector } = await dnaMatches(env.AI, env.DNA, gw, report).catch(() => ({ matches: [], vector: null }));
@@ -83,7 +87,7 @@ export async function tokenReport(env: AppEnv, cfctx: ExecutionCtx | null, mint:
   return report;
 }
 
-export async function walletReport(env: AppEnv, cfctx: ExecutionCtx | null, address: string, fresh = false): Promise<WalletReport> {
+export async function walletReport(env: AppEnv, cfctx: ExecutionCtx | null, address: string, fresh = false, gate?: ScanGate): Promise<WalletReport> {
   if (!isAddress(address)) throw new Error('Invalid Solana address');
   const ctx = scanContext(env);
   const key = `report:wallet:v1:${address}`;
@@ -91,24 +95,25 @@ export async function walletReport(env: AppEnv, cfctx: ExecutionCtx | null, addr
     const hit = await ctx.cache.get<WalletReport>(key).catch(() => null);
     if (hit) return hit;
   }
+  if (gate) await gate();
   const report = await scanWallet(ctx, address);
   await ctx.cache.put(key, report, REPORT_TTL).catch(() => undefined);
   afterResponse(cfctx, recordScan(env.DB, report));
   return report;
 }
 
-export async function anyReport(env: AppEnv, cfctx: ExecutionCtx | null, address: string): Promise<TokenReport | WalletReport> {
+export async function anyReport(env: AppEnv, cfctx: ExecutionCtx | null, address: string, gate?: ScanGate): Promise<TokenReport | WalletReport> {
   if (!isAddress(address)) throw new Error('Invalid Solana address');
   const ctx = scanContext(env);
   const kind = await resolveKind(ctx, address);
   if (kind === 'token') {
     try {
-      return await tokenReport(env, cfctx, address);
+      return await tokenReport(env, cfctx, address, false, gate);
     } catch (e) {
       if (!(e instanceof NotAMintError)) throw e;
     }
   }
-  return walletReport(env, cfctx, address);
+  return walletReport(env, cfctx, address, false, gate);
 }
 
 export async function shieldReport(env: AppEnv, owner: string): Promise<ShieldReport> {

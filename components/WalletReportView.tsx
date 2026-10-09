@@ -15,13 +15,17 @@ const STEPS = ['Identifying the account type', 'Reading activity history', 'Trac
 export function WalletReportView({ address }: { address: string }) {
   const [report, setReport] = useState<WalletReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [limited, setLimited] = useState(false);
 
   useEffect(() => {
     let alive = true;
     fetch(`/api/scan/wallet?address=${address}`)
       .then(async (r) => {
         const data = await r.json();
-        if (!r.ok) throw new Error(data.error ?? 'Scan failed');
+        if (!r.ok) {
+          if (r.status === 402 && alive) setLimited(true);
+          throw new Error(data.error ?? 'Scan failed');
+        }
         return data as WalletReport;
       })
       .then((d) => alive && setReport(d))
@@ -31,7 +35,20 @@ export function WalletReportView({ address }: { address: string }) {
     };
   }, [address]);
 
-  if (error) return <div className="mx-auto max-w-xl py-24 text-center"><div className="text-lg font-bold">Scan failed</div><p className="mt-2 text-muted">{error}</p></div>;
+  if (error) {
+    return (
+      <div className="mx-auto max-w-xl py-24 text-center">
+        <div className="text-lg font-bold">{limited ? 'Daily free limit reached' : 'Scan failed'}</div>
+        <p className="mt-2 text-muted">{error}</p>
+        {limited ? (
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <a href="/#pricing" className="btn-primary">Go Pro for unlimited scans</a>
+            <a href="/account" className="btn-ghost">Already Pro? Sign in</a>
+          </div>
+        ) : null}
+      </div>
+    );
+  }
   if (!report) return <div className="px-4 py-20"><ScanSteps steps={STEPS} /></div>;
   const r = report;
   const g = GRADE_STYLE[r.risk.grade];

@@ -81,7 +81,22 @@
   // Optional vars: QUICKNODE_RPC_RPS / ANKR_RPC_RPS, per-isolate budgets (default 20).
   //   ADMIN_TOKEN         protects /api/admin/*
   //   CRON_SECRET         authenticates the Watchtower cron call
+  //   SESSION_SECRET      signs the wallet session cookie
+  //   STRIPE_WEBHOOK_SECRET  signing secret of the rughawk.xyz/api/billing/webhook endpoint
+  //   STRIPE_SECRET_KEY   restricted key (Checkout Sessions, Billing Portal, read
+  //                       subscriptions). Optional: without it checkout uses the
+  //                       Payment Links below and management the hosted portal page.
+  //   TELEGRAM_BOT_TOKEN  optional, Watchtower alerts on Telegram (with TELEGRAM_BOT_NAME)
   "vars": {
+    // Stripe (live): prices, Payment Links and the hosted portal login page.
+    "STRIPE_PRICE_PRO": "price_1UOSu2FK5yRebCCnn1D22xvh",
+    "STRIPE_PRICE_API": "price_1UOSu3FK5yRebCCn80rIk0kG",
+    "STRIPE_PORTAL_URL": "https://billing.stripe.com/p/login/14AbJ16UJcIMbOL1N6dwc00",
+    "STRIPE_PAYMENT_LINK_PRO": "https://buy.stripe.com/14AbJ16UJcIMbOL1N6dwc00",
+    "STRIPE_PAYMENT_LINK_API": "https://buy.stripe.com/28EeVddj7104cSP8budwc01",
+    // Plan limits: free engine runs per IP per day, API calls per key per month.
+    "FREE_SCANS_PER_DAY": "25",
+    "API_CALLS_PER_MONTH": "50000",
     // Canonical public URL; also in .env.production (inlined at build time).
     "NEXT_PUBLIC_APP_URL": "https://rughawk.xyz",
     // `default` is created automatically by AI Gateway on first use. For

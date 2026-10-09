@@ -21,6 +21,7 @@ export function Header() {
           <Link href="/shield" className="hover:text-bone">Shield</Link>
           <Link href="/ask" className="hover:text-bone">Ask the Hawk</Link>
           <Link href="/#pricing" className="hover:text-bone">Pricing</Link>
+          <Link href="/account" className="hover:text-bone">Account</Link>
         </nav>
         <WalletButton />
       </div>

@@ -1,16 +1,20 @@
 import { getEnv } from '@/lib/env';
 import { walletReport } from '@/lib/service';
-import { fail, json } from '@/lib/http';
+import { chargeApiCall, resolveAccess, scanGate } from '@/lib/access';
+import { fail, json, withQuota } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
 
-/** GET /api/scan/wallet?address=<address>[&fresh=1] */
+/** GET /api/scan/wallet?address=<address>[&fresh=1]; API keys as Authorization: Bearer rh_live_... */
 export async function GET(req: Request) {
   const url = new URL(req.url);
   const address = url.searchParams.get('address')?.trim() ?? '';
   try {
     const { env, ctx } = await getEnv();
-    return json(await walletReport(env, ctx, address, url.searchParams.get('fresh') === '1'));
+    const access = await resolveAccess(req, env);
+    const quota = await chargeApiCall(env, access);
+    const report = await walletReport(env, ctx, address, url.searchParams.get('fresh') === '1', scanGate(env, access));
+    return withQuota(json(report), quota);
   } catch (e) {
     return fail(e);
   }

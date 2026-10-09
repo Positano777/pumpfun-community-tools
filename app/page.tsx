@@ -23,7 +23,6 @@ export default function Home() {
   return (
     <div>
       <section id="scan" className="relative overflow-hidden">
-        <div className="pointer-events-none absolute inset-0 grid-bg" />
         <div className="pointer-events-none absolute inset-0 glow-top" />
         <div className="relative mx-auto max-w-4xl px-4 pb-16 pt-20 text-center md:pt-28">
           <div className="chip mx-auto border-signal/40 bg-signal/10 text-signal">Solana forensic intelligence</div>

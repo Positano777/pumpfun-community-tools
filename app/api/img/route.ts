@@ -1,45 +1,34 @@
+import { afterResponse, getEnv } from '@/lib/env';
+import { loadLogo, logoCandidates } from '@/lib/logo';
+
 export const dynamic = 'force-dynamic';
 
-const TYPES = /^image\/(png|jpe?g|webp|gif|avif|svg\+xml)$/;
-const MAX_BYTES = 2_000_000;
-
 /**
- * GET /api/img?u=<https url>: token logo proxy. Logos live on arbitrary IPFS
- * and CDN hosts; loading them directly leaks every visitor's IP to whoever
- * launched the token, and some gateways send a same-origin CORP header that
- * browsers block. Only image types are passed through, SVG is served inert
- * (sandboxed, no scripts), and responses are edge-cached for a day.
+ * GET /api/img?u=<https or ipfs url>: token logo proxy. Logos live on
+ * arbitrary IPFS and CDN hosts; loading them directly leaks every visitor's
+ * IP to whoever launched the token, and some gateways send a same-origin
+ * CORP header that browsers block. IPFS content is fetched through a list
+ * of dependable gateways (the one the metadata names is usually throttled),
+ * kept in KV for a week, and served edge-cached for a day. Only image types
+ * pass through, and SVG is served inert (sandboxed, no scripts).
  */
 export async function GET(req: Request) {
   const raw = new URL(req.url).searchParams.get('u') ?? '';
-  let target: URL;
-  try {
-    target = new URL(raw.startsWith('ipfs://') ? `https://ipfs.filebase.io/ipfs/${raw.slice(7)}` : raw);
-  } catch {
-    return new Response('Bad url', { status: 400 });
-  }
-  if (target.protocol !== 'https:') return new Response('https only', { status: 400 });
-  try {
-    const res = await fetch(target.href, {
-      headers: { Accept: 'image/*' },
-      signal: AbortSignal.timeout(8000),
-      cf: { cacheTtl: 86_400, cacheEverything: true },
-    } as RequestInit);
-    const type = (res.headers.get('content-type') ?? '').split(';')[0].trim().toLowerCase();
-    if (!res.ok || !TYPES.test(type)) return new Response('Not an image', { status: 415 });
-    const len = Number(res.headers.get('content-length') ?? 0);
-    if (len > MAX_BYTES) return new Response('Too large', { status: 413 });
-    const body = await res.arrayBuffer();
-    if (body.byteLength > MAX_BYTES) return new Response('Too large', { status: 413 });
-    return new Response(body, {
-      headers: {
-        'Content-Type': type,
-        'Cache-Control': 'public, max-age=86400, s-maxage=86400',
-        'X-Content-Type-Options': 'nosniff',
-        'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
-      },
-    });
-  } catch {
-    return new Response('Upstream failed', { status: 502 });
-  }
+  if (raw.length > 2048 || logoCandidates(raw).length === 0) return text('Bad url', 400);
+  const { env, ctx } = await getEnv();
+  const logo = await loadLogo(raw, env.CACHE ?? null, (work) => void afterResponse(ctx, work));
+  if (!logo) return text('Logo unavailable', 404);
+  return new Response(logo.bytes, {
+    headers: {
+      'Content-Type': logo.type,
+      'Content-Length': String(logo.bytes.byteLength),
+      'Cache-Control': 'public, max-age=86400, s-maxage=86400',
+      'X-Content-Type-Options': 'nosniff',
+      'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'; sandbox",
+    },
+  });
+}
+
+function text(body: string, status: number) {
+  return new Response(body, { status, headers: { 'Content-Type': 'text/plain; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
 }

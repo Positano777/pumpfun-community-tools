@@ -10,6 +10,7 @@ import { ShareBar } from './ShareBar';
 import { Address, Findings, RiskDial, ScanSteps, Section, Stat, ago, usd, GRADE_STYLE } from './ui';
 import { DeepChecks } from './DeepChecks';
 import { AskInline } from './AskInline';
+import { TokenLogo } from './TokenLogo';
 
 const STEPS = [
   'Reading mint authorities and Token-2022 extensions',
@@ -71,10 +72,7 @@ export function TokenReportView({ mint }: { mint: string }) {
           <RiskDial score={r.risk.score} grade={r.risk.grade} />
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-3">
-              {r.token.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={`/api/img?u=${encodeURIComponent(r.token.image)}`} alt="" referrerPolicy="no-referrer" className="h-12 w-12 rounded-xl border border-graphite object-cover" />
-              ) : null}
+              <TokenLogo src={r.token.image} label={r.token.symbol ?? r.token.name ?? r.mint} size="md" />
               <div className="min-w-0">
                 <h1 className="truncate text-2xl font-extrabold tracking-tight md:text-3xl">{title}</h1>
                 <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">

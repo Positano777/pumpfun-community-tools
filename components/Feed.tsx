@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import type { FeedRow } from '@/lib/db';
 import { GradeBadge } from './ui';
+import { TokenLogo } from './TokenLogo';
 import type { Grade } from '@/lib/scan/types';
 
 export function Feed() {
@@ -52,12 +53,7 @@ export function Feed() {
             })();
             return (
               <Link key={r.address} href={`/${r.kind}/${r.address}`} className="flex items-center gap-3 py-3 hover:bg-ink/40">
-                {r.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`/api/img?u=${encodeURIComponent(r.image)}`} alt="" referrerPolicy="no-referrer" className="h-9 w-9 shrink-0 rounded-lg border border-graphite object-cover" />
-                ) : (
-                  <div className="h-9 w-9 shrink-0 rounded-lg border border-graphite bg-ink" />
-                )}
+                <TokenLogo src={r.image} label={r.symbol ?? r.name ?? r.address} />
                 <div className="min-w-0 flex-1">
                   <div className="truncate text-sm font-semibold">{r.symbol ? `$${r.symbol}` : r.name ?? `${r.address.slice(0, 6)}…`} <span className="font-normal text-muted">{r.launchpad ?? ''}</span></div>
                   <div className="truncate text-xs text-muted">{flags[0] ?? 'No risk findings'}</div>

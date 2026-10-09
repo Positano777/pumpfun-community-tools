@@ -71,7 +71,9 @@ test('address helpers', () => {
 test('domains and metadata URIs normalise', () => {
   assert.equal(registrableDomain('www.app.example.co.uk'), 'example.co.uk');
   assert.equal(registrableDomain('sub.rughawk.com'), 'rughawk.com');
-  assert.ok(gatewayUrls('ipfs://bafyabc').every((u) => u.endsWith('/ipfs/bafyabc')));
+  const cid = 'bafkreig54lrar2odradcozevsmczibuvqfyjz7o3uusgwstbzhfv4q3oru';
+  assert.ok(gatewayUrls(`ipfs://${cid}`).length >= 3);
+  assert.ok(gatewayUrls(`ipfs://${cid}`).every((u) => u.endsWith(`/ipfs/${cid}`)));
   assert.deepEqual(gatewayUrls('ar://xyz'), ['https://arweave.net/xyz']);
 });
 

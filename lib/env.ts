@@ -11,7 +11,8 @@ export interface AiBinding {
 
 export interface KVLike {
   get(key: string, type: 'json'): Promise<unknown>;
-  put(key: string, value: string, opts?: { expirationTtl?: number }): Promise<void>;
+  getWithMetadata?(key: string, type: 'arrayBuffer'): Promise<{ value: ArrayBuffer | null; metadata: unknown }>;
+  put(key: string, value: string | ArrayBuffer, opts?: { expirationTtl?: number; metadata?: Record<string, unknown> }): Promise<void>;
 }
 
 export interface D1Statement {

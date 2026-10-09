@@ -13,6 +13,8 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
   const [logo, setLogo] = useState<{ review: PublicLogoReview | null; impersonation: boolean } | null>(null);
   const [logoBusy, setLogoBusy] = useState(false);
   const [watching, setWatching] = useState(false);
+  const [watchNote, setWatchNote] = useState<string | null>(null);
+  const [locked, setLocked] = useState<{ site?: string; logo?: string }>({});
   const [alerts, setAlerts] = useState<{ severity: string; message: string; created_at: number }[]>([]);
 
   useEffect(() => {
@@ -25,6 +27,10 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
     try {
       const r = await fetch('/api/ai/site', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: website }) });
       const d = await r.json();
+      if (r.status === 402) {
+        setLocked((l) => ({ ...l, site: d.error ?? 'Pro feature' }));
+        return;
+      }
       setSite(d.review ?? null);
     } finally {
       setSiteBusy(false);
@@ -35,7 +41,12 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
     setLogoBusy(true);
     try {
       const r = await fetch(`/api/ai/logo?mint=${mint}`);
-      setLogo(await r.json());
+      const d = await r.json();
+      if (r.status === 402) {
+        setLocked((l) => ({ ...l, logo: d.error ?? 'Pro feature' }));
+        return;
+      }
+      setLogo(d);
     } finally {
       setLogoBusy(false);
     }
@@ -43,8 +54,20 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
 
   async function watch() {
     const r = await fetch('/api/watch', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address: mint }) });
+    const d = (await r.json().catch(() => ({}))) as { subscribed?: boolean; signedIn?: boolean; error?: string };
     setWatching(r.ok);
+    if (!r.ok) setWatchNote(d.error ?? 'Could not watch this token.');
+    else if (d.subscribed) setWatchNote('Alerts will reach your account page, Telegram and webhook.');
+    else setWatchNote(d.signedIn ? 'Alerts show on this page. Go Pro to get them on Telegram.' : 'Alerts show on this page. Sign in with a Pro wallet to get them delivered.');
   }
+
+  const upgrade = (text: string) => (
+    <div className="mt-4 rounded-lg border border-signal/40 bg-signal/10 p-3 text-xs">
+      <div className="font-semibold text-signal">Pro feature</div>
+      <p className="mt-1 text-muted">{text}</p>
+      <a href="/#pricing" className="btn-primary mt-3 !py-1.5 text-xs">Go Pro</a>
+    </div>
+  );
 
   const verdictTone = site?.verdict === 'drainer-likely' ? 'text-[#FF5A5A]' : site?.verdict === 'suspicious' ? 'text-caution' : 'text-safe';
 
@@ -57,11 +80,12 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
           <div className="flex justify-between gap-2"><span className="text-muted">X</span>{socials.twitter ? <a href={socials.twitter} target="_blank" rel="noreferrer noopener nofollow" className="truncate text-bone underline underline-offset-4">link</a> : <span className="text-muted">none</span>}</div>
           <div className="flex justify-between gap-2"><span className="text-muted">Telegram</span>{socials.telegram ? <a href={socials.telegram} target="_blank" rel="noreferrer noopener nofollow" className="truncate text-bone underline underline-offset-4">link</a> : <span className="text-muted">none</span>}</div>
         </div>
-        {website ? (
+        {website && !locked.site ? (
           <button type="button" onClick={runSite} disabled={siteBusy} className="btn-ghost mt-4 w-full text-xs">
             {siteBusy ? 'Rendering in a headless browser...' : 'Render & review the site'}
           </button>
         ) : null}
+        {locked.site ? upgrade(locked.site) : null}
         {site ? (
           <div className="mt-4 space-y-2 text-sm">
             <div className={`font-bold uppercase tracking-wider ${verdictTone}`}>{site.verdict.replace('-', ' ')}</div>
@@ -76,9 +100,13 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
       </Section>
 
       <Section title="Identity forensics" kicker="Vision + Scam DNA">
-        <button type="button" onClick={runLogo} disabled={logoBusy} className="btn-ghost w-full text-xs">
-          {logoBusy ? 'Predator AI is looking...' : 'Check the logo for brand impersonation'}
-        </button>
+        {!locked.logo ? (
+          <button type="button" onClick={runLogo} disabled={logoBusy} className="btn-ghost w-full text-xs">
+            {logoBusy ? 'Predator AI is looking...' : 'Check the logo for brand impersonation'}
+          </button>
+        ) : (
+          upgrade(locked.logo)
+        )}
         {logo ? (
           <div className="mt-3 text-sm">
             {logo.review ? (
@@ -113,6 +141,7 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
         <button type="button" onClick={watch} disabled={watching} className="btn-primary mt-4 w-full text-xs">
           {watching ? 'Watching this token' : 'Watch this token'}
         </button>
+        {watchNote ? <p className="mt-2 text-xs text-muted">{watchNote}</p> : null}
         <div className="mt-4 space-y-2">
           {alerts.length ? (
             alerts.map((a) => (

@@ -63,7 +63,12 @@ interface Prepared {
 }
 
 /** Guard, scan, retrieve, re-rank and assemble the prompt: shared by both answer paths. */
-async function prepare(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: Turn[]): Promise<Prepared> {
+export interface AskOptions {
+  /** Open-web intel is a Pro feature; the route sets this from the caller's plan. */
+  webIntel?: boolean;
+}
+
+async function prepare(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: Turn[], opts: AskOptions = {}): Promise<Prepared> {
   const gw = env.AI_GATEWAY_ID;
   const guard = await guardInput(env.AI, gw, question);
   if (!guard.allowed) {
@@ -126,7 +131,7 @@ async function prepare(env: AppEnv, cfctx: ExecutionCtx | null, question: string
   // 4. Optional open-web intel for named tokens (beta API, billed via AI Gateway).
   let web: WebHit[] = [];
   const token = reports.find((r): r is TokenReport => r.kind === 'token');
-  if (env.WEB_SEARCH === 'on' && token?.token.symbol && /scam|rug|legit|safe|trust|report/i.test(question)) {
+  if (env.WEB_SEARCH === 'on' && opts.webIntel === true && token?.token.symbol && /scam|rug|legit|safe|trust|report/i.test(question)) {
     web = await webIntel(env.AI, gw, `${token.token.name ?? ''} ${token.token.symbol} solana token rug OR scam`, 4);
   }
 
@@ -155,8 +160,8 @@ async function prepare(env: AppEnv, cfctx: ExecutionCtx | null, question: string
   return { guard, blocked: null, scans, sources, knowledge, messages, fallback };
 }
 
-export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: Turn[] = []): Promise<CopilotAnswer> {
-  const p = await prepare(env, cfctx, question, history);
+export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: Turn[] = [], opts: AskOptions = {}): Promise<CopilotAnswer> {
+  const p = await prepare(env, cfctx, question, history, opts);
   if (p.blocked) return { answer: p.blocked, scans: [], sources: [], guard: p.guard, model: null, knowledge: 'none' };
   const out = env.AI ? await generateText(env.AI, env.AI_GATEWAY_ID, p.messages, 600, { label: 'copilot' }) : null;
   return {
@@ -170,8 +175,8 @@ export async function askHawk(env: AppEnv, cfctx: ExecutionCtx | null, question:
 }
 
 /** Same copilot, answer streamed: the metadata is known before the first token. */
-export async function askHawkStream(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: Turn[] = []): Promise<{ meta: CopilotMeta; stream: ReadableStream<string>; fallback: string }> {
-  const p = await prepare(env, cfctx, question, history);
+export async function askHawkStream(env: AppEnv, cfctx: ExecutionCtx | null, question: string, history: Turn[] = [], opts: AskOptions = {}): Promise<{ meta: CopilotMeta; stream: ReadableStream<string>; fallback: string }> {
+  const p = await prepare(env, cfctx, question, history, opts);
   if (p.blocked) return { meta: { scans: [], sources: [], guard: p.guard, knowledge: 'none', generated: false }, stream: once(p.blocked), fallback: p.blocked };
   const out = env.AI ? await streamText(env.AI, env.AI_GATEWAY_ID, p.messages, 600, { label: 'copilot' }) : null;
   const fallback = p.scans.length ? p.fallback : 'The hawk could not write an answer just now. Ask again in a moment.';

@@ -23,19 +23,24 @@ const RL_BUCKETS = [
   { prefix: '/api/rpc', binding: 'RL_RPC', label: 'rpc' },
 ];
 const RL_DEFAULT = { binding: 'RL_API', label: 'api' };
-const RL_EXEMPT = ['/api/og/', '/api/cron/', '/api/health'];
+const RL_EXEMPT = ['/api/og/', '/api/cron/', '/api/health', '/api/billing/webhook'];
 
 async function rateLimited(request, env, pathname) {
   if (!pathname.startsWith('/api/') || RL_EXEMPT.some((p) => pathname.startsWith(p))) {
     return { response: null, state: 'exempt' };
   }
-  const bucket = RL_BUCKETS.find((b) => pathname.startsWith(b.prefix)) ?? RL_DEFAULT;
+  // API-plan calls (Authorization: Bearer rh_live_...) are metered per key by
+  // the route; at the edge they share the wider API bucket, keyed by the key
+  // itself so one customer's bots never throttle another's.
+  const auth = request.headers.get('authorization') ?? '';
+  const keyed = /^Bearer\s+rh_live_/i.test(auth);
+  const bucket = keyed ? { binding: 'RL_API', label: 'key' } : (RL_BUCKETS.find((b) => pathname.startsWith(b.prefix)) ?? RL_DEFAULT);
   try {
     const limiter = env[bucket.binding];
     if (!limiter || typeof limiter.limit !== 'function') return { response: null, state: `${bucket.label}:nobinding` };
     // cf-connecting-ip is set by Cloudflare and cannot be spoofed at the edge.
     const ip = request.headers.get('cf-connecting-ip') ?? 'unknown';
-    const { success } = await limiter.limit({ key: `${bucket.label}:${ip}` });
+    const { success } = await limiter.limit({ key: keyed ? `key:${auth.slice(-24)}` : `${bucket.label}:${ip}` });
     if (success) return { response: null, state: `${bucket.label}:ok` };
     return {
       state: `${bucket.label}:blocked`,

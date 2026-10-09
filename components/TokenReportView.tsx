@@ -24,13 +24,17 @@ const STEPS = [
 export function TokenReportView({ mint }: { mint: string }) {
   const [report, setReport] = useState<TokenReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [limited, setLimited] = useState(false);
 
   useEffect(() => {
     let alive = true;
     fetch(`/api/scan/token?mint=${mint}`)
       .then(async (r) => {
         const data = await r.json();
-        if (!r.ok) throw new Error(data.error ?? 'Scan failed');
+        if (!r.ok) {
+          if (r.status === 402 && alive) setLimited(true);
+          throw new Error(data.error ?? 'Scan failed');
+        }
         return data as TokenReport;
       })
       .then((d) => alive && setReport(d))
@@ -43,9 +47,14 @@ export function TokenReportView({ mint }: { mint: string }) {
   if (error) {
     return (
       <div className="mx-auto max-w-xl py-24 text-center">
-        <div className="text-lg font-bold">Scan failed</div>
+        <div className="text-lg font-bold">{limited ? 'Daily free limit reached' : 'Scan failed'}</div>
         <p className="mt-2 text-muted">{error}</p>
-        {/not a token mint/i.test(error) ? (
+        {limited ? (
+          <div className="mt-6 flex flex-wrap justify-center gap-3">
+            <a href="/#pricing" className="btn-primary">Go Pro for unlimited scans</a>
+            <a href="/account" className="btn-ghost">Already Pro? Sign in</a>
+          </div>
+        ) : /not a token mint/i.test(error) ? (
           <a href={`/wallet/${mint}`} className="btn-primary mt-6">Scan it as a wallet</a>
         ) : null}
       </div>

@@ -1,5 +1,8 @@
 import { NextResponse } from 'next/server';
 import { NotAMintError } from './scan/token';
+import { HttpError } from './errors';
+
+export { HttpError };
 
 export function json(data: unknown, init: { status?: number; cache?: number } = {}) {
   return NextResponse.json(data, {
@@ -9,11 +12,22 @@ export function json(data: unknown, init: { status?: number; cache?: number } = 
 }
 
 export function fail(e: unknown, fallbackStatus = 500) {
+  if (e instanceof HttpError) return json({ error: e.message, ...e.extra }, { status: e.status });
   if (e instanceof NotAMintError) return json({ error: e.message, accountType: e.accountType }, { status: 422 });
   const message = e instanceof Error ? e.message : 'Unexpected error';
   const status = /invalid solana address/i.test(message) ? 400 : fallbackStatus;
   if (status >= 500) console.error('[rughawk] request failed:', message);
   return json({ error: status >= 500 ? 'Scan failed. The network or a provider is slow; try again in a moment.' : message, detail: status >= 500 ? message.slice(0, 200) : undefined }, { status });
+}
+
+/** API-plan responses carry the monthly quota position. */
+export function withQuota<T extends Response>(res: T, quota: { used: number; limit: number } | null): T {
+  if (quota) {
+    res.headers.set('X-RugHawk-Quota-Limit', String(quota.limit));
+    res.headers.set('X-RugHawk-Quota-Used', String(quota.used));
+    res.headers.set('X-RugHawk-Quota-Remaining', String(Math.max(0, quota.limit - quota.used)));
+  }
+  return res;
 }
 
 const ALLOWED_HOSTS = ['rughawk.xyz', 'rughawk.com', 'rughawk.app', 'rughawk.dev'];

@@ -2,6 +2,7 @@ import { getEnv } from '@/lib/env';
 import { askHawk, askHawkStream, publicAnswer } from '@/lib/ai/copilot';
 import { sseResponse } from '@/lib/ai/sse';
 import { fail, json, originAllowed } from '@/lib/http';
+import { resolveAccess } from '@/lib/access';
 
 export const dynamic = 'force-dynamic';
 
@@ -23,8 +24,10 @@ export async function POST(req: Request) {
           .map((h) => ({ role: h.role as 'user' | 'assistant', content: h.content as string }))
       : [];
     const { env, ctx } = await getEnv();
-    if (body.stream !== true) return json(publicAnswer(await askHawk(env, ctx, question, history)));
-    const { meta, stream, fallback } = await askHawkStream(env, ctx, question, history);
+    const access = await resolveAccess(req, env);
+    const opts = { webIntel: access.plan !== 'free' };
+    if (body.stream !== true) return json(publicAnswer(await askHawk(env, ctx, question, history, opts)));
+    const { meta, stream, fallback } = await askHawkStream(env, ctx, question, history, opts);
     return sseResponse(meta, stream, (t) => t.replace(/\u2014/g, ', '), fallback);
   } catch (e) {
     return fail(e);

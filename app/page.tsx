@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { SearchBox } from '@/components/SearchBox';
 import { Feed } from '@/components/Feed';
 import { Pulse } from '@/components/Pulse';
+import { PricingCta } from '@/components/PricingCta';
 
 const FEATURES = [
   { k: 'Launch forensics', t: 'Reads the creation block itself', d: 'Dev buy at creation, every wallet that bought in the launch block, and how many seconds after launch the deployer started dumping.' },
@@ -12,10 +13,10 @@ const FEATURES = [
   { k: 'Site & logo forensics', t: 'What the website really shows', d: 'Browser Run renders the token website the way a victim sees it, then Predator AI reviews it for drainer lures and checks the logo for brand impersonation.' },
 ];
 
-const TIERS = [
+const TIERS: { name: string; price: string; per: string; items: string[]; cta: string; href?: string; plan?: 'pro' | 'api'; hot?: boolean }[] = [
   { name: 'Free', price: '$0', per: '', items: ['25 scans a day', 'Predator AI verdicts in 9 languages', 'Ask Predator AI by text or voice', 'Wallet Shield (revoke & reclaim)', 'Shareable risk cards'], cta: 'Start scanning', href: '#scan' },
-  { name: 'Pro', price: '$19', per: '/month', items: ['Unlimited scans', 'Watchtower alerts on Telegram', 'Deep site & logo forensics', 'Copilot with web intel'], cta: 'Go Pro', href: '#scan', hot: true },
-  { name: 'API', price: '$99', per: '/month', items: ['50,000 scan calls', 'For trading bots, launchpads, wallets', 'Webhook alerts', 'SLA on request'], cta: 'Get API access', href: 'mailto:security@raptorlabs.dev?subject=RugHawk%20API' },
+  { name: 'Pro', price: '$19', per: '/month', items: ['Unlimited scans', 'Watchtower alerts on Telegram', 'Deep site & logo forensics', 'Copilot with web intel'], cta: 'Go Pro', plan: 'pro', hot: true },
+  { name: 'API', price: '$99', per: '/month', items: ['50,000 scan calls', 'For trading bots, launchpads, wallets', 'Webhook alerts', 'SLA on request'], cta: 'Get API access', plan: 'api' },
 ];
 
 export default function Home() {
@@ -106,6 +107,7 @@ export default function Home() {
         <div className="text-center">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Pricing</div>
           <h2 className="mt-2 text-3xl font-extrabold tracking-tight">Free for traders. Built for platforms.</h2>
+          <p className="mt-3 text-sm text-muted">Billing by Stripe. Your wallet is your account: connect, sign one message, pay by card. Cancel any time from your account.</p>
         </div>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {TIERS.map((t) => (
@@ -117,7 +119,7 @@ export default function Home() {
                   <li key={i} className="flex gap-2"><span className="text-signal">▸</span>{i}</li>
                 ))}
               </ul>
-              <a href={t.href} className={`${t.hot ? 'btn-primary' : 'btn-ghost'} mt-6 w-full`}>{t.cta}</a>
+              {t.plan ? <PricingCta plan={t.plan} label={t.cta} hot={t.hot} /> : <a href={t.href} className="btn-ghost mt-6 w-full">{t.cta}</a>}
             </div>
           ))}
         </div>

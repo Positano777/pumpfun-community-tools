@@ -34,13 +34,15 @@ Use the $TICKER cashtag once when a ticker exists. One warning sign emoji at the
 A LOW grade is not an endorsement: say what was checked and that a low score is not a guarantee.
 End the X post with "Verify it yourself:" because the app appends the report link. Never use the em dash character.`;
 
-/** Cut at a word boundary inside the limit, never mid-word. */
+/** Cut inside the limit at the last sentence end when one sits past the halfway mark, else at a word boundary; never mid-word. */
 export function clampText(text: string, max: number): string {
   const t = text.replace(/\u2014/g, ', ').replace(/[ \t]+/g, ' ').trim();
   if (t.length <= max) return t;
   const head = t.slice(0, max);
-  const cut = Math.max(head.lastIndexOf('. '), head.lastIndexOf('\n'), head.lastIndexOf(' '));
-  return (cut > max * 0.5 ? head.slice(0, cut) : head).trim();
+  const sentence = Math.max(head.lastIndexOf('. '), head.lastIndexOf('! '), head.lastIndexOf('? '), head.lastIndexOf('\n'));
+  if (sentence > max * 0.5) return head.slice(0, sentence + 1).trim();
+  const word = head.lastIndexOf(' ');
+  return (word > max * 0.5 ? head.slice(0, word) : head).trim();
 }
 
 /** The post without a model: grade, score and the top findings, in the same shape. */

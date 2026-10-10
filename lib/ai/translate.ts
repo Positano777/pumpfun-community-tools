@@ -30,7 +30,7 @@ export function translationSystem(language: string): string {
   return `You translate a Solana token security verdict from English into ${language} for a crypto trader who reads ${language} natively.
 Translate every field. Keep the same number of items in each list and the same order.
 Keep as written: token tickers, wallet addresses, numbers, percentages, durations, and the names ${KEEP}.
-Use the terms a ${language}-speaking crypto trader uses for mint authority, freeze authority, permanent delegate, bonding curve, launch block, deployer, liquidity; keep the English term in parentheses the first time when no common equivalent exists.
+Use the terms a ${language}-speaking crypto trader uses for mint authority, freeze authority, permanent delegate, bonding curve, launch block, deployer, liquidity. Never add a parenthetical gloss; when ${language} traders use the English word itself, write it plainly without parentheses.
 Return only the translated JSON. Never use the em dash character.`;
 }
 

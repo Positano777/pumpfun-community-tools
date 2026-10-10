@@ -99,6 +99,7 @@ test('share: the fallback post carries the top finding and the grade, and model 
   assert.match(accepted.post.x, /Verify it yourself:$/);
   assert.deepEqual(acceptPost({ x: 'too short', telegram: 'short' }, fb), { post: fb, generated: false });
   assert.equal(clampText('one two three four', 9), 'one two');
+  assert.equal(clampText('Dev dumped the bag. Grade CRITICAL 84. A low score is', 44), 'Dev dumped the bag. Grade CRITICAL 84.');
   assert.doesNotMatch(clampText('a \u2014 b', 20), NO_DASH);
 });
 

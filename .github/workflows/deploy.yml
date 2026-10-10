@@ -1,0 +1,62 @@
+# Continuous deployment: every push to main runs the checks and deploys the
+# Worker to Cloudflare (npm run deploy: OpenNext build + wrangler deploy).
+# Pull requests run the checks only.
+#
+# Repository secrets (Settings > Secrets and variables > Actions):
+#   CLOUDFLARE_API_TOKEN   account token with Workers Scripts, Workers Routes,
+#                          D1, KV, R2, Vectorize, AI and Browser Rendering edit
+#   CLOUDFLARE_ACCOUNT_ID  the RaptorLabs account id
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Typecheck and test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - run: npm run typecheck
+      - run: npm test
+
+  deploy:
+    name: Deploy to Cloudflare
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: deploy-production
+      cancel-in-progress: false
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      NODE_OPTIONS: --max-old-space-size=4096
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Require the Cloudflare secrets
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID as repository secrets (see the header of this workflow)." >&2
+            exit 1
+          fi
+      - run: npm run deploy
+      - name: Smoke test the live site
+        run: |
+          curl -fsS --max-time 30 https://rughawk.xyz/api/health | grep -q '"ok":true'
+          curl -fsSI --max-time 30 https://rughawk.xyz/ask | grep -qi 'microphone=(self)'

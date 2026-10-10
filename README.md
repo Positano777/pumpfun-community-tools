@@ -95,7 +95,9 @@ npm run dev                           # Next.js dev server
 npm run preview                       # OpenNext build + local workerd
 ```
 
-Deploy (Cloudflare account already has D1, KV and R2 provisioned; ids in `wrangler.jsonc`):
+Continuous deployment: `.github/workflows/deploy.yml` runs typecheck and tests on every push and pull request, and on every push to `main` deploys the Worker and smoke-tests the live site. It needs two repository secrets, `CLOUDFLARE_API_TOKEN` and `CLOUDFLARE_ACCOUNT_ID`; `main` is the deployed branch.
+
+Deploy by hand (Cloudflare account already has D1, KV and R2 provisioned; ids in `wrangler.jsonc`):
 
 ```bash
 npx wrangler login

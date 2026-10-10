@@ -1,7 +1,8 @@
 /**
- * Browser-side client for the copilot: streams an answer as server-sent
- * events and turns a voice recording into text. Shared by the Ask the Hawk
- * page and the inline panel on every report.
+ * Browser-side client for the AI features: streams copilot answers and
+ * finding explanations as server-sent events, and turns a voice recording
+ * into text. Shared by the Ask the Hawk page, the inline panel on every
+ * report and the finding rows.
  */
 export interface HawkScan {
   kind: 'token' | 'wallet';
@@ -36,20 +37,19 @@ function parseBlock(block: string): { event: string; data: unknown } | null {
   }
 }
 
-/** Ask the copilot; `delta` receives text as it is written, `meta` arrives before the first token. */
-export async function streamAsk(question: string, history: Turn[], on: { meta?: (m: HawkMeta) => void; delta: (t: string) => void }, signal?: AbortSignal): Promise<HawkMeta | null> {
-  const res = await fetch('/api/ai/ask', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ question, history, stream: true }),
-    signal,
-  });
+/**
+ * POST a JSON body and read the answer as server-sent events: `meta` once,
+ * then `delta` text, then `done`. A JSON answer (no stream) is delivered as
+ * one meta and one delta.
+ */
+export async function streamJson<M>(url: string, body: unknown, on: { meta?: (m: M) => void; delta: (t: string) => void }, signal?: AbortSignal): Promise<M | null> {
+  const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal });
   if (!res.ok) {
     const d = (await res.json().catch(() => ({}))) as { error?: string };
     throw new Error(d.error ?? 'The hawk could not answer.');
   }
   if (!res.body || !(res.headers.get('content-type') ?? '').includes('text/event-stream')) {
-    const d = (await res.json()) as HawkMeta & { answer?: string };
+    const d = (await res.json()) as M & { answer?: string };
     on.meta?.(d);
     on.delta(d.answer ?? '');
     return d;
@@ -57,7 +57,7 @@ export async function streamAsk(question: string, history: Turn[], on: { meta?: 
   const reader = res.body.getReader();
   const decoder = new TextDecoder();
   let buffer = '';
-  let meta: HawkMeta | null = null;
+  let meta: M | null = null;
   while (true) {
     const { value, done } = await reader.read();
     if (done) break;
@@ -68,7 +68,7 @@ export async function streamAsk(question: string, history: Turn[], on: { meta?: 
       buffer = buffer.slice(idx + 2);
       const ev = parseBlock(block);
       if (ev?.event === 'meta') {
-        meta = ev.data as HawkMeta;
+        meta = ev.data as M;
         on.meta?.(meta);
       } else if (ev?.event === 'delta') {
         on.delta(String((ev.data as { t?: string }).t ?? ''));
@@ -79,6 +79,22 @@ export async function streamAsk(question: string, history: Turn[], on: { meta?: 
     }
   }
   return meta;
+}
+
+/** Ask the copilot; `delta` receives text as it is written, `meta` arrives before the first token. */
+export function streamAsk(question: string, history: Turn[], on: { meta?: (m: HawkMeta) => void; delta: (t: string) => void }, signal?: AbortSignal): Promise<HawkMeta | null> {
+  return streamJson<HawkMeta>('/api/ai/ask', { question, history, stream: true }, on, signal);
+}
+
+export interface ExplainMeta {
+  cached: boolean;
+  generated: boolean;
+  findingId: string;
+}
+
+/** One finding of a report, explained; text streams into `delta`. */
+export function streamExplain(kind: 'token' | 'wallet', address: string, findingId: string, on: { meta?: (m: ExplainMeta) => void; delta: (t: string) => void }, signal?: AbortSignal): Promise<ExplainMeta | null> {
+  return streamJson<ExplainMeta>('/api/ai/explain', { kind, address, findingId }, on, signal);
 }
 
 /** A recorded question as text. */

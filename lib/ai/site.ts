@@ -6,7 +6,8 @@
  * shows the "connect wallet to claim" lure.
  */
 import type { AiBinding, BrowserLike, R2Like } from '../env';
-import { generateStructured } from './workers-ai';
+import { MODELS, generateStructured } from './workers-ai';
+import { toBase64 } from './bytes';
 
 export interface SiteReview {
   url: string;
@@ -17,6 +18,8 @@ export interface SiteReview {
   summary: string;
   screenshotKey: string | null;
   renderedChars: number;
+  /** The screenshot was reviewed alongside the text (vision), not only the text. */
+  screenshotReviewed: boolean;
   model: string | null;
 }
 
@@ -24,7 +27,7 @@ export interface SiteReview {
 export type PublicSiteReview = Omit<SiteReview, 'model'>;
 
 export function publicSiteReview(r: SiteReview): PublicSiteReview {
-  return { url: r.url, verdict: r.verdict, lures: r.lures, asksForWallet: r.asksForWallet, impersonates: r.impersonates, summary: r.summary, screenshotKey: r.screenshotKey, renderedChars: r.renderedChars };
+  return { url: r.url, verdict: r.verdict, lures: r.lures, asksForWallet: r.asksForWallet, impersonates: r.impersonates, summary: r.summary, screenshotKey: r.screenshotKey, renderedChars: r.renderedChars, screenshotReviewed: r.screenshotReviewed };
 }
 
 const SCHEMA = {
@@ -64,7 +67,7 @@ export async function reviewSite(
   gatewayId: string | undefined,
   url: string,
 ): Promise<SiteReview> {
-  const base: SiteReview = { url, verdict: 'unreachable', lures: [], asksForWallet: false, impersonates: null, summary: 'Page could not be rendered.', screenshotKey: null, renderedChars: 0, model: null };
+  const base: SiteReview = { url, verdict: 'unreachable', lures: [], asksForWallet: false, impersonates: null, summary: 'Page could not be rendered.', screenshotKey: null, renderedChars: 0, screenshotReviewed: false, model: null };
   if (!browser) return { ...base, summary: 'Browser Run binding not configured.' };
 
   const [md, shot] = await Promise.all([
@@ -81,26 +84,66 @@ export async function reviewSite(
   if (!text) return { ...base, screenshotKey };
 
   if (!ai) return { ...base, verdict: 'suspicious', summary: 'Rendered, but no AI binding to review it.', screenshotKey, renderedChars: text.length };
-  const out = await generateStructured<{ verdict: SiteReview['verdict']; lures: string[]; asksForWallet: boolean; impersonates: string; summary: string }>(ai, gatewayId, {
-    system:
-      'You audit crypto token websites for wallet-drainer and phishing patterns. Judge only the rendered page text you are given. Lures include: claim or airdrop buttons, "connect wallet to verify", fake migration or V2 swap pages, countdowns to claim free tokens, support chats asking for seed phrases. A plain memecoin page with art, links, a contract address or a launch or season countdown is clean. Only call a page suspicious when it pushes visitors to connect a wallet or sign something. Never use the em dash character.',
-    user: `URL: ${url}\nRENDERED PAGE (markdown):\n${text}`,
+  const review = await reviewRendered(ai, gatewayId, url, text, shot?.bytes && shot.type ? { bytes: shot.bytes, type: shot.type } : null);
+  if (!review) return { ...base, verdict: 'suspicious', summary: 'Rendered, AI review unavailable.', screenshotKey, renderedChars: text.length };
+  return {
+    url,
+    verdict: ['clean', 'suspicious', 'drainer-likely'].includes(review.data.verdict) ? review.data.verdict : 'suspicious',
+    lures: (review.data.lures ?? []).slice(0, 5),
+    asksForWallet: Boolean(review.data.asksForWallet),
+    impersonates: noneToNull(review.data.impersonates),
+    summary: String(review.data.summary ?? '').replace(/\u2014/g, ', '),
+    screenshotKey,
+    renderedChars: text.length,
+    screenshotReviewed: review.withImage,
+    model: review.model,
+  };
+}
+
+const REVIEW_SYSTEM =
+  'You audit crypto token websites for wallet-drainer and phishing patterns. You are given the rendered page text and, when available, a screenshot of the page as a visitor sees it; a lure that is only visible in the image (a "Connect wallet" button, a claim banner, a countdown, a fake wallet pop-up) counts as much as one in the text. Lures include: claim or airdrop buttons, "connect wallet to verify", fake migration or V2 swap pages, countdowns to claim free tokens, support chats asking for seed phrases. A plain memecoin page with art, links, a contract address or a launch or season countdown is clean. Only call a page suspicious when it pushes visitors to connect a wallet or sign something. Never use the em dash character.';
+
+type ReviewData = { verdict: SiteReview['verdict']; lures: string[]; asksForWallet: boolean; impersonates: string; summary: string };
+
+/** Most screenshots fit; a bigger one is reviewed as text only rather than sent at all. */
+const MAX_IMAGE_BYTES = 1_500_000;
+
+/**
+ * Vision first (text plus screenshot in one message to the multimodal
+ * model), text only when there is no usable screenshot or the vision call
+ * fails, so a review always comes back when the model is up.
+ */
+async function reviewRendered(
+  ai: AiBinding,
+  gatewayId: string | undefined,
+  url: string,
+  text: string,
+  shot: { bytes: ArrayBuffer; type: string } | null,
+): Promise<{ data: ReviewData; model: string; withImage: boolean } | null> {
+  const prompt = `URL: ${url}\nRENDERED PAGE (markdown):\n${text}`;
+  if (shot && shot.bytes.byteLength > 0 && shot.bytes.byteLength <= MAX_IMAGE_BYTES && /^image\/(png|jpe?g|webp)/.test(shot.type)) {
+    const dataUri = `data:${shot.type.split(';')[0]};base64,${toBase64(shot.bytes)}`;
+    const withImage = await generateStructured<ReviewData>(ai, gatewayId, {
+      model: MODELS.vision,
+      system: REVIEW_SYSTEM,
+      user: [
+        { type: 'text', text: `${prompt}\n\nThe attached image is the screenshot of the same page.` },
+        { type: 'image_url', image_url: { url: dataUri } },
+      ],
+      schema: SCHEMA,
+      maxTokens: 500,
+      gateway: { cacheTtl: 3600, label: 'site-review-vision' },
+    });
+    if (withImage) return { data: withImage.data, model: withImage.model, withImage: true };
+  }
+  const textOnly = await generateStructured<ReviewData>(ai, gatewayId, {
+    system: REVIEW_SYSTEM,
+    user: prompt,
     schema: SCHEMA,
     maxTokens: 500,
     gateway: { cacheTtl: 3600, label: 'site-review' },
   });
-  if (!out) return { ...base, verdict: 'suspicious', summary: 'Rendered, AI review unavailable.', screenshotKey, renderedChars: text.length };
-  return {
-    url,
-    verdict: ['clean', 'suspicious', 'drainer-likely'].includes(out.data.verdict) ? out.data.verdict : 'suspicious',
-    lures: (out.data.lures ?? []).slice(0, 5),
-    asksForWallet: Boolean(out.data.asksForWallet),
-    impersonates: noneToNull(out.data.impersonates),
-    summary: String(out.data.summary ?? '').replace(/\u2014/g, ', '),
-    screenshotKey,
-    renderedChars: text.length,
-    model: out.model,
-  };
+  return textOnly ? { data: textOnly.data, model: textOnly.model, withImage: false } : null;
 }
 
 async function sha256(s: string): Promise<string> {

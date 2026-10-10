@@ -3,6 +3,8 @@
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
 import type { Finding, Grade, Severity } from '@/lib/scan/types';
+import { streamExplain, type ExplainMeta } from '@/lib/hawk-client';
+import { useSpeaker, type SpeakerControl } from './useHawk';
 
 export const GRADE_STYLE: Record<Grade, { color: string; ring: string; label: string; text: string }> = {
   LOW: { color: '#3FBF7F', ring: 'border-safe/50 bg-safe/10 text-safe', label: 'Low risk', text: 'text-safe' },
@@ -105,8 +107,40 @@ function evidenceHref(href?: string): { href: string; external: boolean } | null
   return { href, external: href.startsWith('http') };
 }
 
-export function FindingRow({ f }: { f: Finding }) {
+export interface ExplainTarget {
+  kind: 'token' | 'wallet';
+  address: string;
+  speaker: SpeakerControl;
+}
+
+export function FindingRow({ f, explain }: { f: Finding; explain?: ExplainTarget }) {
   const s = SEV_STYLE[f.severity];
+  const [open, setOpen] = useState(false);
+  const [text, setText] = useState('');
+  const [state, setState] = useState<'idle' | 'loading' | 'done' | 'failed'>('idle');
+  const [meta, setMeta] = useState<ExplainMeta | null>(null);
+  const canExplain = Boolean(explain) && f.severity !== 'good';
+  const speechId = `finding-${f.id}`;
+  const reading = explain?.speaker.speaking === speechId;
+
+  async function toggle() {
+    if (!explain) return;
+    if (open) {
+      setOpen(false);
+      if (reading) explain.speaker.stop();
+      return;
+    }
+    setOpen(true);
+    if (state !== 'idle') return;
+    setState('loading');
+    try {
+      await streamExplain(explain.kind, explain.address, f.id, { meta: setMeta, delta: (t) => setText((x) => x + t) });
+      setState('done');
+    } catch {
+      setState('failed');
+    }
+  }
+
   return (
     <div className="rounded-xl border border-graphite/60 bg-ink/40 p-4">
       <div className="flex items-start gap-3">
@@ -115,6 +149,17 @@ export function FindingRow({ f }: { f: Finding }) {
           <div className="flex flex-wrap items-center gap-2">
             <span className={`text-[11px] font-bold uppercase tracking-wider ${s.text}`}>{s.label}</span>
             <span className="text-[11px] uppercase tracking-wider text-muted">{f.category}</span>
+            {canExplain ? (
+              <button
+                type="button"
+                onClick={() => void toggle()}
+                className={`ml-auto rounded-md border px-2 py-0.5 text-[11px] font-semibold ${open ? 'border-signal/60 text-signal' : 'border-graphite text-muted hover:border-signal/60 hover:text-bone'}`}
+                aria-expanded={open}
+                title="Predator AI explains this finding in plain English"
+              >
+                {open ? 'Hide' : 'Explain'}
+              </button>
+            ) : null}
           </div>
           <div className="mt-1 font-semibold leading-snug">{f.title}</div>
           <p className="mt-1 text-sm leading-relaxed text-muted">{f.detail}</p>
@@ -141,6 +186,31 @@ export function FindingRow({ f }: { f: Finding }) {
               })}
             </div>
           ) : null}
+          {open && explain ? (
+            <div className="mt-3 rounded-lg border border-signal/25 bg-coal/70 p-3">
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">In plain English · Predator AI</div>
+                {state === 'done' && text ? (
+                  <button
+                    type="button"
+                    onClick={() => (reading ? explain.speaker.stop() : void explain.speaker.speak(text, { id: speechId }))}
+                    className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold ${reading ? 'border-signal text-signal' : 'border-graphite text-bone hover:border-signal/60'}`}
+                  >
+                    {reading ? 'Stop' : 'Listen'}
+                  </button>
+                ) : null}
+              </div>
+              <div className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-bone/90">
+                {text}
+                {state === 'loading' ? <span className="ml-0.5 inline-block h-4 w-1.5 animate-pulsefade rounded-sm bg-signal align-middle" aria-hidden /> : null}
+                {state === 'loading' && !text ? <span className="text-muted">Reading the evidence...</span> : null}
+                {state === 'failed' && !text ? <span className="text-muted">The explanation is unavailable right now. The engine detail above is complete without it.</span> : null}
+              </div>
+              {state === 'done' ? (
+                <div className="mt-2 text-[11px] text-muted">{meta?.generated ? 'Grounded in this scan and the Hawk Playbook; it cannot change the score.' : 'Engine detail (no model available).'}</div>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </div>
     </div>
@@ -151,22 +221,24 @@ function short(v: string) {
   return /^[1-9A-HJ-NP-Za-km-z]{32,90}$/.test(v) ? `${v.slice(0, 6)}…${v.slice(-6)}` : v.length > 70 ? `${v.slice(0, 67)}...` : v;
 }
 
-export function Findings({ findings }: { findings: Finding[] }) {
+export function Findings({ findings, explain }: { findings: Finding[]; explain?: { kind: 'token' | 'wallet'; address: string } }) {
   const [showAll, setShowAll] = useState(false);
+  const speaker = useSpeaker();
+  const target: ExplainTarget | undefined = explain ? { ...explain, speaker } : undefined;
   const risks = findings.filter((f) => f.severity !== 'good' && f.severity !== 'info');
   const rest = findings.filter((f) => f.severity === 'good' || f.severity === 'info');
   return (
     <div className="space-y-3">
       {risks.length === 0 ? <div className="rounded-xl border border-safe/30 bg-safe/5 p-4 text-sm text-safe">No risk findings. Still treat new tokens as speculative.</div> : null}
       {risks.map((f) => (
-        <FindingRow key={f.id + f.title} f={f} />
+        <FindingRow key={f.id + f.title} f={f} explain={target} />
       ))}
       {rest.length ? (
         <button type="button" className="text-sm text-muted underline underline-offset-4 hover:text-bone" onClick={() => setShowAll((v) => !v)}>
           {showAll ? 'Hide' : 'Show'} {rest.length} passed checks and notes
         </button>
       ) : null}
-      {showAll ? rest.map((f) => <FindingRow key={f.id + f.title} f={f} />) : null}
+      {showAll ? rest.map((f) => <FindingRow key={f.id + f.title} f={f} explain={target} />) : null}
     </div>
   );
 }

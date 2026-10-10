@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { HawkMessage, MicButton } from './HawkChat';
-import { useHawk, useVoice } from './useHawk';
+import { useHawk, useSpeaker, useVoice } from './useHawk';
 
 const SUGGESTIONS = [
   'What is a permanent delegate and why is it dangerous?',
@@ -14,21 +14,25 @@ const SUGGESTIONS = [
 export function AskHawk() {
   const params = useSearchParams();
   const { msgs, busy, ask } = useHawk();
+  const speaker = useSpeaker();
   const [input, setInput] = useState(params.get('q') ?? '');
   const end = useRef<HTMLDivElement | null>(null);
   const autoAsked = useRef(false);
 
+  // A spoken question gets a spoken answer: the hands-free loop.
   const onVoice = useCallback(
-    (text: string) => {
+    async (text: string) => {
       setInput('');
-      void ask(text);
+      const answer = await ask(text, { spoken: true });
+      if (answer) void speaker.speak(answer, { id: 'latest' });
     },
-    [ask],
+    [ask, speaker.speak],
   );
-  const voice = useVoice(onVoice);
+  const voice = useVoice((text) => void onVoice(text));
 
+  // Follow the conversation; an empty page stays at the top.
   useEffect(() => {
-    end.current?.scrollIntoView({ behavior: 'smooth' });
+    if (msgs.length) end.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }, [msgs]);
 
   // Arriving from the search box with a question: ask it straight away.
@@ -54,7 +58,7 @@ export function AskHawk() {
         {msgs.length === 0 ? (
           <div className="py-10 text-center">
             <div className="text-lg font-bold">Ask about any token, wallet or Solana scam pattern.</div>
-            <p className="mt-1 text-sm text-muted">Include an address and the hawk scans it first. Type it, or press Speak and say it.</p>
+            <p className="mt-1 text-sm text-muted">Include an address and the hawk scans it first. Type in any language, or press Speak: the hawk listens until you go quiet and reads the answer back.</p>
             <div className="mt-6 flex flex-col items-center gap-2">
               {SUGGESTIONS.map((s) => (
                 <button key={s} type="button" onClick={() => submit(s)} className="btn-ghost w-full max-w-md text-left text-xs">{s}</button>
@@ -63,7 +67,7 @@ export function AskHawk() {
           </div>
         ) : null}
         {msgs.map((m, i) => (
-          <HawkMessage key={i} m={m} />
+          <HawkMessage key={i} m={m} id={i === msgs.length - 1 && m.spoken ? 'latest' : `msg-${i}`} speaker={speaker} />
         ))}
         <div ref={end} />
       </div>
@@ -78,7 +82,7 @@ export function AskHawk() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           maxLength={800}
-          placeholder={voice.state === 'recording' ? 'Listening... press Stop when you are done' : 'Is 7xKX...pump a rug? Who deployed it?'}
+          placeholder={voice.state === 'recording' ? 'Listening... pause when you are done' : voice.state === 'transcribing' ? 'Hearing you...' : 'Is 7xKX...pump a rug? Who deployed it?'}
           className="min-w-0 flex-1 rounded-xl border border-graphite bg-ink/60 px-4 py-3 text-sm placeholder:text-muted focus:border-signal/60 focus:outline-none"
         />
         <MicButton voice={voice} />

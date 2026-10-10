@@ -63,7 +63,7 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
 
   const upgrade = (text: string) => (
     <div className="mt-4 rounded-lg border border-signal/40 bg-signal/10 p-3 text-xs">
-      <div className="font-semibold text-signal">Pro feature</div>
+      <div className="font-semibold text-signal">Unlimited with Pro</div>
       <p className="mt-1 text-muted">{text}</p>
       <a href="/#pricing" className="btn-primary mt-3 !py-1.5 text-xs">Go Pro</a>
     </div>
@@ -91,6 +91,7 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
             <div className={`font-bold uppercase tracking-wider ${verdictTone}`}>{site.verdict.replace('-', ' ')}</div>
             <p className="text-muted">{site.summary}</p>
             {site.lures.length ? <ul className="list-inside list-disc text-xs text-caution">{site.lures.map((l) => <li key={l}>{l}</li>)}</ul> : null}
+            <div className="text-[11px] text-muted">{site.screenshotReviewed ? 'Predator AI reviewed the page text and the screenshot.' : 'Predator AI reviewed the rendered page text.'}</div>
             {site.screenshotKey ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={`/api/screens/${site.screenshotKey.split('/').pop()}`} alt="Rendered website" className="mt-2 rounded-lg border border-graphite" />

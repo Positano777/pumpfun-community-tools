@@ -46,6 +46,7 @@ Never mention how the evidence was delivered (no "knowledge block", "scan data",
 Keep two concepts apart: a token approval is a delegate a holder signs on their own token account (revocable); a Token-2022 permanent delegate is set by the issuer on the mint and can move or burn tokens from every holder, forever.
 When a scan is present: give its grade and score first, then the 2 or 3 findings that matter most, then one concrete next step.
 Never give financial advice, price targets or "safe to buy" guarantees. Never ask for seed phrases or private keys.
+Answer in the language the question is written in (Croatian question, Croatian answer); keep tickers, addresses, program names and numbers exactly as written.
 Keep answers under 170 words. Short paragraphs or bullets. Never use the em dash character.`;
 
 type Turn = { role: 'user' | 'assistant'; content: string };

@@ -3,11 +3,13 @@
 import { useEffect, useState } from 'react';
 import type { Pulse as PulseData, PatternKey } from '@/lib/ai/pulse-stats';
 import { PATTERN_LABELS } from '@/lib/ai/pulse-stats';
+import { useSpeaker } from './useHawk';
 
 /** The last 24 hours of flagged launches, counted by the engine and phrased by Predator AI. */
 export function Pulse() {
   const [pulse, setPulse] = useState<PulseData | null>(null);
   const [failed, setFailed] = useState(false);
+  const speaker = useSpeaker();
 
   useEffect(() => {
     fetch('/api/ai/pulse')
@@ -34,7 +36,17 @@ export function Pulse() {
     <div className="card mx-auto mt-8 max-w-3xl p-5 text-left">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Market pulse · Predator AI</div>
-        <div className="text-[11px] text-muted">last {pulse.stats.windowHours} hours · {pulse.stats.flagged} flagged</div>
+        <div className="flex items-center gap-2 text-[11px] text-muted">
+          <span>last {pulse.stats.windowHours} hours · {pulse.stats.flagged} flagged</span>
+          <button
+            type="button"
+            onClick={() => (speaker.speaking === 'pulse' ? speaker.stop() : void speaker.speak(`${pulse.headline}. ${pulse.body} ${pulse.watch}`, { id: 'pulse' }))}
+            className={`rounded-md border px-2 py-0.5 text-[11px] font-semibold ${speaker.speaking === 'pulse' ? 'border-signal text-signal' : 'border-graphite text-bone hover:border-signal/60'}`}
+            title="Hear the pulse"
+          >
+            {speaker.speaking === 'pulse' ? 'Stop' : 'Listen'}
+          </button>
+        </div>
       </div>
       <h3 className="mt-2 text-lg font-bold leading-snug">{pulse.headline}</h3>
       <p className="mt-1 text-sm text-bone/80">{pulse.body}</p>

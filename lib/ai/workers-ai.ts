@@ -7,9 +7,33 @@
  * creates it automatically on first use), then a direct call. A missing or
  * misconfigured gateway must never take a feature down.
  *
- * Model choices follow what Solmint measured live through its gateway on
- * 2026-09-10: Llama 4 Scout answered schema-constrained JSON in ~1.6 s with
- * valid output every run; Llama 3.3 70B is the fallback.
+ * One model per job, chosen for that job (Workers AI catalog, August 2026):
+ *
+ *   text        Llama 4 Scout: schema-constrained JSON in about 1.6 s with
+ *               valid output every run (measured live through the gateway on
+ *               2026-09-10) and token streaming for the copilot. Every
+ *               explanation on the site is latency-bound, so the fast
+ *               mixture-of-experts model wins over bigger reasoning models.
+ *   textFallback Llama 3.3 70B fp8-fast: the fallback when Scout errors.
+ *   multilingual Gemma 4 26B (4B active): 140+ languages at a third of
+ *               Scout's price; translates a whole verdict in one structured
+ *               call with the crypto terms kept intact.
+ *   vision      Llama 4 Scout again: natively multimodal, so the logo check
+ *               and the rendered-site review share one model and one prompt
+ *               style (image plus text in one message).
+ *   embed       bge-base-en-v1.5: 768 dimensions, the size of the Scam DNA
+ *               index in Vectorize (changing it means re-embedding the index).
+ *   rerank      bge-reranker-base: orders the playbook notes by relevance to
+ *               the question before they reach the model.
+ *   safety      Llama Guard 3 8B: MLCommons hazard classification of copilot
+ *               input.
+ *   tts         Deepgram Aura-2 (English): context-aware pacing, the voice of
+ *               the spoken verdicts; Aura-1 remains the fallback. Aura-2
+ *               Spanish reads the Spanish translation.
+ *   transcribe  Deepgram Nova-3: multilingual, keyterm prompting for the
+ *               crypto vocabulary ("pump.fun", "Token-2022", "Raydium");
+ *               Whisper large v3 turbo is the fallback.
+ *   translate   m2m100 1.2B: the last-resort per-field translator.
  */
 import type { AiBinding } from '../env';
 import { parseLooseJson } from './json';
@@ -17,12 +41,16 @@ import { parseLooseJson } from './json';
 export const MODELS = {
   text: '@cf/meta/llama-4-scout-17b-16e-instruct',
   textFallback: '@cf/meta/llama-3.3-70b-instruct-fp8-fast',
+  multilingual: '@cf/google/gemma-4-26b-a4b-it',
   vision: '@cf/meta/llama-4-scout-17b-16e-instruct',
   embed: '@cf/baai/bge-base-en-v1.5',
   safety: '@cf/meta/llama-guard-3-8b',
-  tts: '@cf/deepgram/aura-1',
+  tts: '@cf/deepgram/aura-2-en',
+  ttsFallback: '@cf/deepgram/aura-1',
+  ttsSpanish: '@cf/deepgram/aura-2-es',
   rerank: '@cf/baai/bge-reranker-base',
-  transcribe: '@cf/openai/whisper-large-v3-turbo',
+  transcribe: '@cf/deepgram/nova-3',
+  transcribeFallback: '@cf/openai/whisper-large-v3-turbo',
   translate: '@cf/meta/m2m100-1.2b',
 } as const;
 

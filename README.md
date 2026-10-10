@@ -37,7 +37,7 @@ Design rule: **the engine decides, the LLM explains.** The score is deterministi
 | Product | Use |
 |---|---|
 | Workers + Static Assets (OpenNext) | Next.js 16 app and API, one Worker |
-| Workers AI | Llama 4 Scout (verdicts, copilot, logo vision, site review), Llama 3.3 70B (fallback), Llama Guard 3 (copilot safety), bge-base-en-v1.5 (Scam DNA), Deepgram Aura (spoken verdicts) |
+| Workers AI | One model per job, see the table below: Llama 4 Scout, Llama 3.3 70B, Gemma 4, Llama Guard 3, bge-base-en-v1.5, bge-reranker-base, Deepgram Nova-3, Deepgram Aura-2 |
 | AI Gateway | Every AI call routed through `AI_GATEWAY_ID` (currently the auto-created `default`; create `rughawk-ai` for per-app logs, caching, spend limit and Guardrails, including the Prompt Guard P1 injection category) |
 | AI Search | Instance `rughawk-playbook` (5 docs), created and filled at runtime by `/api/admin/setup` |
 | Web Search API (beta) | Wired into the copilot (`WEB_SEARCH=on`); needs prepaid AI Gateway credits (the API answers 402 until credits are loaded) |
@@ -48,6 +48,32 @@ Design rule: **the engine decides, the LLM explains.** The score is deterministi
 | R2 | Report snapshots, screenshots, Next.js incremental cache |
 | Rate Limiting bindings | Per-IP limits on scans, AI and the RPC relay |
 | Cron Triggers | Watchtower re-scans every 10 minutes |
+
+### Workers AI: one model per job
+
+The engine decides, the model explains. Every call goes through AI Gateway; every model was picked for its job (`lib/ai/workers-ai.ts`):
+
+| Job | Model | Why this one |
+|---|---|---|
+| Verdicts, market pulse, warning posts, Shield briefing (schema-constrained JSON) | `@cf/meta/llama-4-scout-17b-16e-instruct` | Valid JSON every run in about 1.6 s through the gateway; the fastest mixture-of-experts model for latency-bound explanations |
+| Copilot and finding explanations (streamed) | Llama 4 Scout, fallback `@cf/meta/llama-3.3-70b-instruct-fp8-fast` | Token streaming, 131K context for scan digests plus playbook notes |
+| Verdict translation (14 languages) | `@cf/google/gemma-4-26b-a4b-it`, fallback `@cf/meta/m2m100-1.2b` | 140+ languages, structured output, a third of Scout's price; translates the whole verdict in one call with tickers and crypto terms intact |
+| Logo check and rendered-site review (image plus text) | Llama 4 Scout (vision) | Natively multimodal: the screenshot from Browser Run and the page markdown go in one message, so image-only lures ("Connect wallet" buttons) count |
+| Scam DNA embeddings and DNA search | `@cf/baai/bge-base-en-v1.5` | 768 dimensions, the size of the Vectorize index |
+| Playbook re-ranking | `@cf/baai/bge-reranker-base` | Orders the retrieved notes by relevance to the question |
+| Copilot input safety | `@cf/meta/llama-guard-3-8b` | MLCommons hazard classification; the pattern-based injection screen runs first |
+| Voice questions | `@cf/deepgram/nova-3`, fallback `@cf/openai/whisper-large-v3-turbo` | Multilingual, language detection, key-term prompting for "pump.fun", "Token-2022", "Raydium" |
+| Spoken verdicts, answers, pulse and briefings | `@cf/deepgram/aura-2-en`, fallback `@cf/deepgram/aura-1`; `@cf/deepgram/aura-2-es` for Spanish | Context-aware pacing; the Spanish verdict is read by the Spanish voice |
+
+What the models power on the site:
+
+- **Hawk verdict** on every report, in 15 languages, with a Listen button (English and Spanish voices).
+- **Explain** on every finding: a streamed plain-English briefing grounded in the finding, the scan digest and the matching playbook notes.
+- **Ask the Hawk** by text or voice: the recording stops when you go quiet, the answer comes back in the language you asked in, and a spoken question gets a spoken answer.
+- **Warning post**: an X post and a Telegram message written from the findings, editable before posting.
+- **Scam DNA search** on the home page: describe a token in words and the nearest flagged identities in Vectorize come back with their grades.
+- **Shield briefing**: approvals, seizable holdings and reclaimable rent explained to the wallet owner, with the actions to take.
+- **Market pulse** with Listen, **site review** over text and screenshot, **logo forensics**.
 
 RPC: two providers side by side, routed per method in `lib/rpc.ts` (measured on mainnet 2026-10-08):
 
@@ -86,12 +112,16 @@ npx wrangler login
 | `GET /api/shield?owner=` | Approvals, seizable tokens, reclaimable rent |
 | `GET /api/ai/verdict?kind=&address=` | AI verdict (cached per score) |
 | `POST /api/ai/ask` | Copilot; `stream: true` returns server-sent events (`meta`, `delta`, `done`) |
-| `POST /api/ai/transcribe` | Spoken question (audio body) as text |
+| `POST /api/ai/explain` | One finding explained (`kind`, `address`, `findingId`), server-sent events, cached per score |
+| `POST /api/ai/share` | Warning post for X and Telegram (`kind`, `address`), cached per score |
+| `GET /api/ai/memory?q=` | Scam DNA searched in plain words (embedding + Vectorize) |
+| `POST /api/ai/shield` | Shield report of a wallet briefed in plain English (`owner`) |
+| `POST /api/ai/transcribe` | Spoken question (audio body) as text (Nova-3, Whisper fallback) |
 | `POST /api/ai/translate` | Verdict in another language (`kind`, `address`, `score`, `lang`) |
 | `GET /api/ai/pulse` | 24-hour market pulse: engine counts, phrased by Predator AI, cached 10 minutes |
-| `POST /api/ai/speak` | Spoken verdict (audio/mpeg) |
-| `POST /api/ai/site` | Browser Run site review |
-| `GET /api/ai/logo?mint=` | Logo brand-impersonation check |
+| `POST /api/ai/speak` | Text as audio (audio/mpeg), `lang` `en` or `es` |
+| `POST /api/ai/site` | Browser Run site review over the page text and screenshot (3 free a day per IP, Pro unlimited) |
+| `GET /api/ai/logo?mint=` | Logo brand-impersonation check (same daily allowance) |
 | `GET /api/og/token/<mint>` | Shareable 1200x630 risk card |
 | `GET /api/feed` | Latest flagged tokens + totals |
 | `POST /api/watch`, `GET /api/watch?address=` | Watchtower |
@@ -118,8 +148,8 @@ Live AI checks: Llama 4 Scout verdicts (about 4 s, gateway-routed), copilot grou
 
 ## Business model
 
-- **Free**: 25 scans/day, AI verdicts, Shield, share cards (distribution engine: every shared report is an ad).
-- **Pro $19/mo**: unlimited scans, Watchtower alerts on Telegram, deep site/logo forensics, web intel.
+- **Free**: 25 scans/day, AI verdicts in 15 languages, 3 site and logo deep checks a day, Shield, share cards and AI-written warning posts (distribution engine: every shared report is an ad).
+- **Pro $19/mo**: unlimited scans, Watchtower alerts on Telegram, unlimited site/logo forensics, web intel.
 - **API from $99/mo**: Telegram trading bots, launchpads, wallets (they already pay for rug checks).
 - **Shield reclaim fee**: optional, disclosed % of reclaimed rent, fail-closed when no treasury is configured.
 
@@ -129,7 +159,7 @@ Endpoint tokens live only as Worker secrets. The RPC relay is origin-checked and
 
 ## Billing (Stripe)
 
-Plans match the pricing section: Free (25 fresh scans a day per IP), Pro at $19/month, API at $99/month with 50,000 scan calls a month. The wallet is the account: a visitor connects a Solana wallet, signs one message (Sign In With Solana, checked with Ed25519 in WebCrypto) and gets an HMAC-signed session cookie. Stripe Checkout carries the wallet as `client_reference_id`; the webhook at `/api/billing/webhook` mirrors subscriptions into D1 and entitlements are read from there.
+Plans match the pricing section: Free (25 fresh scans a day per IP, 3 deep checks a day per IP via `FREE_DEEP_CHECKS_PER_DAY`), Pro at $19/month, API at $99/month with 50,000 scan calls a month. The wallet is the account: a visitor connects a Solana wallet, signs one message (Sign In With Solana, checked with Ed25519 in WebCrypto) and gets an HMAC-signed session cookie. Stripe Checkout carries the wallet as `client_reference_id`; the webhook at `/api/billing/webhook` mirrors subscriptions into D1 and entitlements are read from there.
 
 Stripe objects (live account): products RugHawk Pro and RugHawk API, monthly prices with lookup keys `rughawk_pro_monthly` and `rughawk_api_monthly`, one Payment Link per plan, a webhook endpoint for `checkout.session.completed`, `customer.subscription.*` and `invoice.payment_failed`, and a Billing Portal configuration with the hosted login page.
 

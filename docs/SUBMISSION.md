@@ -14,6 +14,7 @@ Judging criteria Colosseum publishes: functionality, potential impact, novelty, 
 - [ ] Add rughawk.com to Cloudflare, uncomment `routes` in `wrangler.jsonc`, set `NEXT_PUBLIC_APP_URL` (wrangler.jsonc + .env.production) to https://rughawk.com, `npm run deploy`
 - [ ] Dashboard: create AI Gateway `rughawk-ai` (Guardrails incl. Prompt Injection P1, daily spend limit), then set `AI_GATEWAY_ID` to it
 - [ ] Optional: load AI Gateway credits and set `WEB_SEARCH=on` for copilot web intel
+- [ ] Deploy the AI feature branch (`npm run deploy`), then on the live site check: Speak on /ask (the microphone policy header now allows it), a spoken question answered aloud, Explain on a finding, Write a warning, Scam DNA search on the home page, Shield briefing with a connected wallet, the launch timeline on a pump.fun token
 - [ ] Record the pitch video (3 min max) and the technical demo video
 - [ ] Make the GitHub repo public (open source is a judging criterion)
 - [ ] Submit on the Arena with: repo, live URL, both videos, X handle
@@ -33,8 +34,8 @@ Judging criteria Colosseum publishes: functionality, potential impact, novelty, 
 3. The hard part: a hot launch with thousands of transactions. Show the creator discovered from the pump.fun bonding curve (offset 49), the fee-sharing PDA hop, the `getBlock` read of the launch slot.
 4. Context-aware scoring: PYUSD (permanent delegate expected for a regulated issuer), BONK (exchange custody recognised).
 5. Lock vs dump: SCraft's deployer moved its whole 25.9% bag out 99 seconds after launch. A balance check calls that a dump; RugHawk reads the Streamflow lock. Then JET: the deployer sprayed dust into dozens of fresh wallets to fake a holder count.
-6. AI layer: verdict JSON schema, the copilot refusing an injection attempt, Scam DNA neighbours in Vectorize, Browser Run screenshot of a token site, Aura voice verdict.
-7. Shield: build and sign a Revoke + CloseAccount transaction; show the rent coming back.
+6. AI layer, one model per job: verdict JSON schema (Llama 4 Scout), Explain on a finding streamed live, the copilot refusing an injection attempt, a question spoken in Croatian answered aloud in Croatian (Nova-3 in, Gemma 4 and Aura-2 out), Scam DNA search ("fake TRUMP token") hitting Vectorize, Browser Run screenshot reviewed by the vision model, the warning post written for X.
+7. Shield: the Hawk briefing names the open doors, then build and sign a Revoke + CloseAccount transaction; show the rent coming back.
 8. Security: endpoint tokens as secrets, method-allowlisted RPC relay, edge rate limits, image proxy that hides user IPs.
 
 ## Judge-facing one-liner

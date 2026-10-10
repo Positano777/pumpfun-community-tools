@@ -1,8 +1,10 @@
 import Link from 'next/link';
 import { SearchBox } from '@/components/SearchBox';
 import { Feed } from '@/components/Feed';
+import { DnaSearch } from '@/components/DnaSearch';
 import { Pulse } from '@/components/Pulse';
 import { PricingCta } from '@/components/PricingCta';
+import { LANGUAGE_COUNT } from '@/lib/ai/languages';
 
 const FEATURES = [
   { k: 'Launch forensics', t: 'Reads the creation block itself', d: 'Dev buy at creation, every wallet that bought in the launch block, and how many seconds after launch the deployer started dumping.' },
@@ -14,8 +16,8 @@ const FEATURES = [
 ];
 
 const TIERS: { name: string; price: string; per: string; items: string[]; cta: string; href?: string; plan?: 'pro' | 'api'; hot?: boolean }[] = [
-  { name: 'Free', price: '$0', per: '', items: ['25 scans a day', 'Predator AI verdicts in 9 languages', 'Ask Predator AI by text or voice', 'Wallet Shield (revoke & reclaim)', 'Shareable risk cards'], cta: 'Start scanning', href: '#scan' },
-  { name: 'Pro', price: '$19', per: '/month', items: ['Unlimited scans', 'Watchtower alerts on Telegram', 'Deep site & logo forensics', 'Copilot with web intel'], cta: 'Go Pro', plan: 'pro', hot: true },
+  { name: 'Free', price: '$0', per: '', items: ['25 scans a day', `Predator AI verdicts in ${LANGUAGE_COUNT} languages`, 'Ask Predator AI by text or voice', '3 site & logo deep checks a day', 'Wallet Shield (revoke & reclaim)', 'AI-written warning posts'], cta: 'Start scanning', href: '#scan' },
+  { name: 'Pro', price: '$19', per: '/month', items: ['Unlimited scans', 'Watchtower alerts on Telegram', 'Unlimited site & logo forensics', 'Copilot with web intel'], cta: 'Go Pro', plan: 'pro', hot: true },
   { name: 'API', price: '$99', per: '/month', items: ['50,000 scan calls', 'For trading bots, launchpads, wallets', 'Webhook alerts', 'SLA on request'], cta: 'Get API access', plan: 'api' },
 ];
 
@@ -25,7 +27,10 @@ export default function Home() {
       <section id="scan" className="relative overflow-hidden">
         <div className="pointer-events-none absolute inset-0 glow-top" />
         <div className="relative mx-auto max-w-4xl px-4 pb-16 pt-20 text-center md:pt-28">
-          <div className="chip mx-auto border-signal/40 bg-signal/10 text-signal">Solana forensic intelligence</div>
+          <div className="flex flex-wrap justify-center gap-2">
+            <div className="chip border-signal/40 bg-signal/10 text-signal">Solana forensic intelligence</div>
+            <div className="chip border-graphite text-muted">Colosseum Crypto World&apos;s Fair entry</div>
+          </div>
           <h1 className="mt-5 text-4xl font-extrabold tracking-tight md:text-6xl">
             Spot the rug <span className="text-signal">before</span> it&apos;s pulled.
           </h1>
@@ -42,12 +47,13 @@ export default function Home() {
             <Link className="underline underline-offset-4 hover:text-bone" href="/wallet/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4">Jupiter program</Link>
           </div>
           <Pulse />
-          <div className="mt-10 text-[11px] uppercase tracking-[0.2em] text-muted">Predator AI · Vectorize · Browser Run · QuickNode · Ankr</div>
+          <div className="mt-10 text-[11px] uppercase tracking-[0.2em] text-muted">Cloudflare Workers AI · Vectorize · Browser Run · AI Search · QuickNode · Ankr</div>
         </div>
       </section>
 
       <section className="mx-auto max-w-6xl px-4">
         <Feed />
+        <DnaSearch />
       </section>
 
       <section className="mx-auto mt-20 max-w-6xl px-4">

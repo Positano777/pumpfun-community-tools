@@ -11,6 +11,7 @@ import { Address, Findings, RiskDial, ScanSteps, Section, Stat, ago, usd, GRADE_
 import { DeepChecks } from './DeepChecks';
 import { AskInline } from './AskInline';
 import { TokenLogo } from './TokenLogo';
+import { LaunchTimeline } from './LaunchTimeline';
 
 const STEPS = [
   'Reading mint authorities and Token-2022 extensions',
@@ -95,7 +96,7 @@ export function TokenReportView({ mint }: { mint: string }) {
             <div className={`mt-4 text-lg font-bold ${g.text}`}>{GRADE_COPY[r.risk.grade].label}</div>
             <p className="mt-1 max-w-2xl text-sm text-bone/80">{GRADE_COPY[r.risk.grade].tone}</p>
             <div className="mt-5">
-              <ShareBar path={`/token/${r.mint}`} text={`RugHawk scan of ${title}: ${r.risk.grade} risk (${r.risk.score}/100).${topRisk ? ` ${topRisk.title}.` : ''}`} />
+              <ShareBar path={`/token/${r.mint}`} text={`RugHawk scan of ${title}: ${r.risk.grade} risk (${r.risk.score}/100).${topRisk ? ` ${topRisk.title}.` : ''}`} ai={{ kind: 'token', address: r.mint }} />
             </div>
           </div>
         </div>
@@ -107,7 +108,7 @@ export function TokenReportView({ mint }: { mint: string }) {
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <Section title="Findings" kicker={`${r.risk.counts.critical} critical · ${r.risk.counts.high} high · ${r.risk.counts.medium} medium`}>
-          <Findings findings={r.findings} />
+          <Findings findings={r.findings} explain={{ kind: 'token', address: r.mint }} />
           {r.partial.length ? (
             <div className="mt-4 rounded-xl border border-caution/30 bg-caution/5 p-3 text-xs text-caution">
               Not fully checked: {r.partial.join(' · ')}
@@ -129,6 +130,7 @@ export function TokenReportView({ mint }: { mint: string }) {
                   <Stat label="Dev locked" value={pctText(devLockedPct)} hint={r.launch.devLocks?.[0] ? `in ${r.launch.devLocks[0].locker}` : 'of supply'} />
                   <Stat label="Dev burned" value={pctText(devBurnedPct)} hint="of supply" tone={devBurnedPct > 0 ? 'text-safe' : ''} />
                 </div>
+                <LaunchTimeline launch={r.launch} />
                 {r.launch.deployer ? <div className="text-xs text-muted">Deployer: <Address value={r.launch.deployer} href={`/wallet/${r.launch.deployer}`} /></div> : null}
                 {r.launch.creationSignature ? (
                   <a className="text-xs text-muted underline underline-offset-4 hover:text-bone" href={`https://solscan.io/tx/${r.launch.creationSignature}`} target="_blank" rel="noreferrer noopener">Creation transaction on Solscan</a>

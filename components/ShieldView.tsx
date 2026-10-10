@@ -7,6 +7,7 @@ import { Buffer } from 'buffer';
 import { ComputeBudgetProgram, PublicKey, SystemProgram, Transaction, TransactionInstruction } from '@solana/web3.js';
 import type { ShieldAccount, ShieldReport } from '@/lib/scan/shield';
 import { Address, Section, Stat } from './ui';
+import { ShieldBriefCard } from './ShieldBriefCard';
 
 const WalletButton = dynamic(() => import('@solana/wallet-adapter-react-ui').then((m) => m.WalletMultiButton), { ssr: false });
 
@@ -159,6 +160,8 @@ export function ShieldView() {
         <Stat label="Seizable holdings" value={report.permanentDelegateExposure.length} tone={report.permanentDelegateExposure.length ? 'text-caution' : ''} />
         <Stat label="Reclaimable rent" value={`${report.reclaimableSol.toFixed(4)} SOL`} hint={`${report.closable.length} empty accounts`} tone="text-safe" />
       </div>
+
+      {publicKey ? <ShieldBriefCard owner={publicKey.toBase58()} stateKey={`${report.scannedAt}:${report.delegated.length}:${report.closable.length}:${report.permanentDelegateExposure.length}`} /> : null}
 
       <Section
         title="Live approvals"

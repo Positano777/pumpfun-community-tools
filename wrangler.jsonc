@@ -47,10 +47,14 @@
   // Create once: npx wrangler vectorize create rughawk-dna --dimensions=768 --metric=cosine
   "vectorize": [{ "binding": "DNA", "index_name": "rughawk-dna" }],
 
-  // Workers AI: Llama 4 Scout (verdicts, copilot, vision), Llama 3.3 70B
-  // (fallback), Llama Guard 3 + Prompt Guard 2 (copilot guardrails),
-  // bge-base-en-v1.5 (Scam DNA), Deepgram Aura (spoken verdicts), plus the
-  // Web Search API. Every call is routed through AI Gateway (AI_GATEWAY_ID).
+  // Workers AI, one model per job (lib/ai/workers-ai.ts): Llama 4 Scout
+  // (verdicts, copilot, finding explanations, warning posts, logo and
+  // rendered-site vision), Llama 3.3 70B (fallback), Gemma 4 (verdict
+  // translation, 14 languages), Llama Guard 3 (copilot safety),
+  // bge-base-en-v1.5 (Scam DNA embeddings and search), bge-reranker-base
+  // (playbook re-ranking), Deepgram Nova-3 (voice questions), Deepgram
+  // Aura-2 (spoken verdicts, answers, briefings), plus the Web Search API.
+  // Every call is routed through AI Gateway (AI_GATEWAY_ID).
   "ai": { "binding": "AI" },
 
   // Browser Run: renders token websites (markdown + screenshot) for the
@@ -65,7 +69,7 @@
   // from Solmint's (1001-1004) so the two apps never share counters.
   "ratelimits": [
     { "name": "RL_SCAN", "namespace_id": "2001", "simple": { "limit": 30, "period": 60 } },
-    { "name": "RL_AI", "namespace_id": "2002", "simple": { "limit": 12, "period": 60 } },
+    { "name": "RL_AI", "namespace_id": "2002", "simple": { "limit": 30, "period": 60 } },
     { "name": "RL_RPC", "namespace_id": "2003", "simple": { "limit": 300, "period": 60 } },
     { "name": "RL_API", "namespace_id": "2004", "simple": { "limit": 300, "period": 60 } }
   ],
@@ -97,6 +101,8 @@
     // Plan limits: free engine runs per IP per day, API calls per key per month.
     "FREE_SCANS_PER_DAY": "25",
     "API_CALLS_PER_MONTH": "50000",
+    // Site renders and logo checks per free IP per day (0 makes them Pro-only).
+    "FREE_DEEP_CHECKS_PER_DAY": "3",
     // Canonical public URL; also in .env.production (inlined at build time).
     "NEXT_PUBLIC_APP_URL": "https://rughawk.xyz",
     // `default` is created automatically by AI Gateway on first use. For

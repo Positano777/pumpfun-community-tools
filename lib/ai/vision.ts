@@ -6,6 +6,9 @@
 import type { AiBinding } from '../env';
 import { MODELS, generateStructured } from './workers-ai';
 import { noneToNull } from './site';
+import { toBase64 } from './bytes';
+
+export { toBase64 } from './bytes';
 
 export interface LogoReview {
   brand: string | null;
@@ -31,12 +34,6 @@ const SCHEMA = {
   required: ['brand', 'confidence', 'description'],
 };
 
-export function toBase64(buf: ArrayBuffer): string {
-  const bytes = new Uint8Array(buf);
-  let bin = '';
-  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
-  return btoa(bin);
-}
 
 export async function reviewLogo(ai: AiBinding | undefined, gatewayId: string | undefined, imageUrl: string, claimed: { name: string | null; symbol: string | null }): Promise<LogoReview | null> {
   if (!ai || !/^https:\/\//.test(imageUrl)) return null;

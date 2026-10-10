@@ -3,6 +3,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { PublicAiVerdict } from '@/lib/scan/types';
 import { LANGUAGES, type LanguageCode } from '@/lib/ai/languages';
+import { voiceFor } from '@/lib/ai/voice';
+import { useSpeaker } from './useHawk';
 
 type Lang = 'en' | LanguageCode;
 
@@ -12,8 +14,7 @@ export function AiVerdictPanel({ kind, address, score }: { kind: 'token' | 'wall
   const [lang, setLang] = useState<Lang>('en');
   const [translating, setTranslating] = useState(false);
   const [state, setState] = useState<'loading' | 'ready' | 'unavailable'>('loading');
-  const [speaking, setSpeaking] = useState(false);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const speaker = useSpeaker();
   const translations = useRef<Partial<Record<Lang, PublicAiVerdict>>>({});
 
   useEffect(() => {
@@ -39,6 +40,7 @@ export function AiVerdictPanel({ kind, address, score }: { kind: 'token' | 'wall
   }, [kind, address, score]);
 
   async function switchLang(next: Lang) {
+    speaker.stop();
     setLang(next);
     const known = translations.current[next];
     if (known) {
@@ -69,26 +71,8 @@ export function AiVerdictPanel({ kind, address, score }: { kind: 'token' | 'wall
     }
   }
 
-  async function listen() {
-    if (!shown) return;
-    setSpeaking(true);
-    try {
-      const res = await fetch('/api/ai/speak', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: `${shown.headline} ${shown.summary}`.slice(0, 600) }),
-      });
-      if (!res.ok) throw new Error('voice');
-      const url = URL.createObjectURL(await res.blob());
-      audioRef.current?.pause();
-      const audio = new Audio(url);
-      audioRef.current = audio;
-      audio.onended = () => setSpeaking(false);
-      await audio.play();
-    } catch {
-      setSpeaking(false);
-    }
-  }
+  const voice = voiceFor(lang);
+  const reading = speaker.speaking === 'verdict';
 
   return (
     <div className="card relative overflow-hidden p-5 md:p-6">
@@ -111,9 +95,14 @@ export function AiVerdictPanel({ kind, address, score }: { kind: 'token' | 'wall
                 <option key={code} value={code}>{LANGUAGES[code].label}</option>
               ))}
             </select>
-            {lang === 'en' ? (
-              <button type="button" onClick={listen} disabled={speaking} className="btn-ghost !px-3 !py-1.5 text-xs">
-                {speaking ? 'Speaking...' : 'Listen'}
+            {voice ? (
+              <button
+                type="button"
+                onClick={() => (reading ? speaker.stop() : void speaker.speak(`${shown.headline}. ${shown.summary}`, { id: 'verdict', lang: voice }))}
+                className={`btn-ghost !px-3 !py-1.5 text-xs ${reading ? '!border-signal !text-signal' : ''}`}
+                title="Hear the verdict (Deepgram Aura-2 on Workers AI)"
+              >
+                {reading ? 'Stop' : 'Listen'}
               </button>
             ) : null}
           </div>

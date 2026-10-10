@@ -20,6 +20,8 @@ export interface Access {
 
 export const DEFAULT_FREE_SCANS_PER_DAY = 25;
 export const DEFAULT_API_CALLS_PER_MONTH = 50_000;
+/** Site renders and logo checks a free visitor gets per day (Browser Run plus vision calls cost real money). */
+export const DEFAULT_FREE_DEEP_CHECKS_PER_DAY = 3;
 
 export function freeScansPerDay(env: AppEnv): number {
   const n = Number(env.FREE_SCANS_PER_DAY);
@@ -29,6 +31,11 @@ export function freeScansPerDay(env: AppEnv): number {
 export function apiCallsPerMonth(env: AppEnv): number {
   const n = Number(env.API_CALLS_PER_MONTH);
   return Number.isFinite(n) && n > 0 ? n : DEFAULT_API_CALLS_PER_MONTH;
+}
+
+export function freeDeepChecksPerDay(env: AppEnv): number {
+  const n = Number(env.FREE_DEEP_CHECKS_PER_DAY);
+  return Number.isFinite(n) && n >= 0 ? n : DEFAULT_FREE_DEEP_CHECKS_PER_DAY;
 }
 
 export function bearerToken(req: Request): string | null {
@@ -87,4 +94,19 @@ export function scanGate(env: AppEnv, access: Access): (() => Promise<void>) | u
 
 export function paidOnly(access: Access, feature: string): void {
   if (access.plan === 'free') throw new HttpError(402, `${feature} is a Pro feature. Go Pro to unlock it.`, { upgrade: '/#pricing' });
+}
+
+/**
+ * Deep checks (site render, logo vision) for free visitors: a few per IP per
+ * day so anyone can see what they do; Pro and API wallets are not metered.
+ * Runs after the cache lookup, so a repeat of a cached check costs nothing.
+ */
+export async function deepCheckGate(env: AppEnv, access: Access, feature: string): Promise<void> {
+  if (access.plan !== 'free') return;
+  const limit = freeDeepChecksPerDay(env);
+  if (limit <= 0) return paidOnly(access, feature);
+  const c = await consume(env.DB, `deep:${access.ip}`, dayPeriod(), limit);
+  if (!c.allowed) {
+    throw new HttpError(402, `${feature}: your ${limit} free deep checks for today are used. Go Pro for unlimited site and logo forensics.`, { upgrade: '/#pricing', used: c.used, limit });
+  }
 }

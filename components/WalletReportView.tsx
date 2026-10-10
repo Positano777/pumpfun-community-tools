@@ -66,7 +66,7 @@ export function WalletReportView({ address }: { address: string }) {
             <div className={`mt-4 text-lg font-bold ${g.text}`}>{GRADE_COPY[r.risk.grade].label}</div>
             <p className="mt-1 max-w-2xl text-sm text-bone/80">Counterparty risk: how dangerous it is to interact with this address. Exposure findings describe the owner's own wallet hygiene.</p>
             {r.accountType === 'mint' ? <Link href={`/token/${r.address}`} className="btn-primary mt-4">Open the token report</Link> : null}
-            <div className="mt-5"><ShareBar path={`/wallet/${r.address}`} text={`RugHawk wallet scan: ${r.risk.grade} risk (${r.risk.score}/100).`} /></div>
+            <div className="mt-5"><ShareBar path={`/wallet/${r.address}`} text={`RugHawk wallet scan: ${r.risk.grade} risk (${r.risk.score}/100).`} ai={{ kind: 'wallet', address: r.address }} /></div>
           </div>
         </div>
       </div>
@@ -77,7 +77,7 @@ export function WalletReportView({ address }: { address: string }) {
 
       <div className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
         <Section title="Findings" kicker={`${r.risk.counts.critical} critical · ${r.risk.counts.high} high · ${r.risk.counts.medium} medium`}>
-          <Findings findings={r.findings} />
+          <Findings findings={r.findings} explain={{ kind: 'wallet', address: r.address }} />
           {r.partial.length ? <div className="mt-4 rounded-xl border border-caution/30 bg-caution/5 p-3 text-xs text-caution">Not fully checked: {r.partial.join(' · ')}</div> : null}
         </Section>
         <div className="space-y-6">

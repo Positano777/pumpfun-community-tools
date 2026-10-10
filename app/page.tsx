@@ -16,7 +16,7 @@ const FEATURES = [
 ];
 
 const TIERS: { name: string; price: string; per: string; items: string[]; cta: string; href?: string; plan?: 'pro' | 'api'; hot?: boolean }[] = [
-  { name: 'Free', price: '$0', per: '', items: ['25 scans a day', `Predator AI verdicts in ${LANGUAGE_COUNT} languages`, 'Ask Predator AI by text or voice', '3 site & logo deep checks a day', 'Wallet Shield (revoke & reclaim)', 'AI-written warning posts'], cta: 'Start scanning', href: '#scan' },
+  { name: 'Free', price: '$0', per: '', items: ['25 scans a day', `Predator AI verdicts in ${LANGUAGE_COUNT} languages`, 'Ask Predator AI by text or voice', '3 site & logo deep checks a day, wallet sign-in', 'Wallet Shield (revoke & reclaim)', 'AI-written warning posts'], cta: 'Start scanning', href: '#scan' },
   { name: 'Pro', price: '$19', per: '/month', items: ['Unlimited scans', 'Watchtower alerts on Telegram', 'Unlimited site & logo forensics', 'Copilot with web intel'], cta: 'Go Pro', plan: 'pro', hot: true },
   { name: 'API', price: '$99', per: '/month', items: ['50,000 scan calls', 'For trading bots, launchpads, wallets', 'Webhook alerts', 'SLA on request'], cta: 'Get API access', plan: 'api' },
 ];

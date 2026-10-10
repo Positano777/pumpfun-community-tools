@@ -1,6 +1,6 @@
 import type { AppEnv } from './env';
 import type { Access } from './access';
-import { apiCallsPerMonth, freeScansPerDay } from './access';
+import { apiCallsPerMonth, freeDeepChecksPerDay, freeScansPerDay } from './access';
 import { account, activeApiKey, alertsForWallet, entitlement, monthPeriod, usage, watchSubsFor, type AlertRow, type WatchRow } from './account';
 import { billingMode, type Plan } from './billing/stripe';
 import { telegramEnabled } from './billing/alerts';
@@ -11,7 +11,7 @@ export interface Me {
   plan: Plan;
   subscription: { status: string; periodEnd: number | null; cancelAtPeriodEnd: boolean } | null;
   billing: { mode: 'checkout' | 'links' | 'off'; portal: boolean };
-  limits: { freeScansPerDay: number; apiCallsPerMonth: number };
+  limits: { freeScansPerDay: number; freeDeepChecksPerDay: number; apiCallsPerMonth: number };
   apiKey: { prefix: string; createdAt: number; lastUsed: number | null; used: number; limit: number } | null;
   webhook: { url: string; secret: string | null } | null;
   telegram: { enabled: boolean; connected: boolean; bot: string | null };
@@ -20,7 +20,7 @@ export interface Me {
 }
 
 export async function buildMe(env: AppEnv, access: Access): Promise<Me> {
-  const limits = { freeScansPerDay: freeScansPerDay(env), apiCallsPerMonth: apiCallsPerMonth(env) };
+  const limits = { freeScansPerDay: freeScansPerDay(env), freeDeepChecksPerDay: freeDeepChecksPerDay(env), apiCallsPerMonth: apiCallsPerMonth(env) };
   const mode = billingMode(env);
   const base: Me = {
     wallet: null,

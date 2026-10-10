@@ -91,8 +91,11 @@ export interface AppEnv {
   /** Plan limits (vars): free engine runs per IP per day, API calls per key per month. */
   FREE_SCANS_PER_DAY?: string;
   API_CALLS_PER_MONTH?: string;
-  /** Site renders and logo checks per free IP per day (var; 0 makes them Pro-only). */
+  /** Site renders and logo checks per free identity per day (var; 0 makes them Pro-only). */
   FREE_DEEP_CHECKS_PER_DAY?: string;
+  /** What makes a signed-in free wallet count as its own identity: balance and signature count (vars). */
+  FREE_WALLET_MIN_SOL?: string;
+  FREE_WALLET_MIN_TXS?: string;
   /** Watchtower alerts on Telegram: bot token (secret) and bot username (var). */
   TELEGRAM_BOT_TOKEN?: string;
   TELEGRAM_BOT_NAME?: string;

@@ -3,6 +3,7 @@ import { HttpError } from './errors';
 import { sessionWallet } from './auth';
 import { apiKeyByValue, consume, dayPeriod, entitlement, monthPeriod, touchApiKey, API_KEY_PREFIX } from './account';
 import type { Plan } from './billing/stripe';
+import { walletEligibility, type EligibilityRpc } from './eligibility';
 
 /**
  * Who is calling and what they may do. Three doors:
@@ -77,17 +78,54 @@ export async function chargeApiCall(env: AppEnv, access: Access): Promise<{ used
 }
 
 /**
- * A gate the scan service runs just before the engine (never on cache
- * hits). Free visitors get FREE_SCANS_PER_DAY engine runs per IP per day;
- * Pro, API and key holders are not metered here.
+ * Who a free allowance belongs to.
+ *
+ * A signed-in wallet that is funded and used (lib/eligibility.ts) gets its
+ * own allowance: it costs SOL and history to manufacture, and it keeps a
+ * trader on a shared mobile or office address from being throttled by their
+ * neighbours. Everyone else, anonymous or signed in with a fresh keypair,
+ * shares the network address's allowance, so a thousand empty wallets from
+ * one address are worth exactly one address. A second counter caps every
+ * free run from an address whichever wallets sign in from it, so cycling
+ * funded wallets through one connection runs out too.
  */
-export function scanGate(env: AppEnv, access: Access): (() => Promise<void>) | undefined {
+export interface FreeIdentity {
+  key: string;
+  identity: 'wallet' | 'ip';
+}
+
+export async function freeIdentity(env: AppEnv, access: Access, rpc?: EligibilityRpc): Promise<FreeIdentity> {
+  if (access.wallet && access.via === 'session') {
+    const e = await walletEligibility(env, access.wallet, rpc);
+    if (e.eligible) return { key: `wallet:${access.wallet}`, identity: 'wallet' };
+  }
+  return { key: `ip:${access.ip}`, identity: 'ip' };
+}
+
+/** Free engine runs an address may make in a day across every wallet that signs in from it. */
+export const IP_CEILING_FACTOR = 4;
+
+/**
+ * A gate the scan service runs just before the engine (never on cache
+ * hits). Free visitors get FREE_SCANS_PER_DAY engine runs per identity per
+ * day (see freeIdentity); Pro, API and key holders are not metered here.
+ */
+export function scanGate(env: AppEnv, access: Access, rpc?: EligibilityRpc): (() => Promise<void>) | undefined {
   if (access.plan !== 'free') return undefined;
   const limit = freeScansPerDay(env);
   return async () => {
-    const c = await consume(env.DB, `ip:${access.ip}`, dayPeriod(), limit);
+    const id = await freeIdentity(env, access, rpc);
+    const day = dayPeriod();
+    // The identity's own allowance first: a run it refuses never touches the address ceiling.
+    const c = await consume(env.DB, id.key, day, limit);
     if (!c.allowed) {
       throw new HttpError(402, `Daily limit reached: ${limit} free scans a day. Go Pro for unlimited scans.`, { upgrade: '/#pricing', used: c.used, limit });
+    }
+    if (id.identity === 'wallet') {
+      const ceiling = await consume(env.DB, `ipall:${access.ip}`, day, limit * IP_CEILING_FACTOR);
+      if (!ceiling.allowed) {
+        throw new HttpError(402, `This network address has used its free engine runs for today. Go Pro for unlimited scans.`, { upgrade: '/#pricing', used: ceiling.used, limit: ceiling.limit });
+      }
     }
   };
 }
@@ -96,17 +134,37 @@ export function paidOnly(access: Access, feature: string): void {
   if (access.plan === 'free') throw new HttpError(402, `${feature} is a Pro feature. Go Pro to unlock it.`, { upgrade: '/#pricing' });
 }
 
+/** Free deep checks an address may run in a day across every wallet that signs in from it. */
+export const DEEP_IP_CEILING_FACTOR = 3;
+
 /**
- * Deep checks (site render, logo vision) for free visitors: a few per IP per
- * day so anyone can see what they do; Pro and API wallets are not metered.
+ * Deep checks (site render, logo vision) for free visitors: a few a day per
+ * identity so anyone can see what they do; Pro and API wallets are not
+ * metered. They need a signed-in wallet (the wallet is the account, and the
+ * sign-in is the first step of the upgrade), and the allowance follows the
+ * wallet only when it is funded and used; otherwise it is the address's.
  * Runs after the cache lookup, so a repeat of a cached check costs nothing.
  */
-export async function deepCheckGate(env: AppEnv, access: Access, feature: string): Promise<void> {
+export async function deepCheckGate(env: AppEnv, access: Access, feature: string, rpc?: EligibilityRpc): Promise<void> {
   if (access.plan !== 'free') return;
   const limit = freeDeepChecksPerDay(env);
   if (limit <= 0) return paidOnly(access, feature);
-  const c = await consume(env.DB, `deep:${access.ip}`, dayPeriod(), limit);
+  if (!access.wallet || access.via !== 'session') {
+    throw new HttpError(401, `Sign in with your wallet to run ${limit} free deep checks a day. Pro wallets run them without limit.`, { signIn: true, upgrade: '/#pricing', limit });
+  }
+  const id = await freeIdentity(env, access, rpc);
+  const day = dayPeriod();
+  const c = await consume(env.DB, `deep:${id.key}`, day, limit);
   if (!c.allowed) {
-    throw new HttpError(402, `${feature}: your ${limit} free deep checks for today are used. Go Pro for unlimited site and logo forensics.`, { upgrade: '/#pricing', used: c.used, limit });
+    const why =
+      id.identity === 'wallet'
+        ? `your ${limit} free deep checks for today are used.`
+        : `this wallet is new or unfunded, so it shares the ${limit} free deep checks a day of your network address, and they are used. A wallet holding 0.01 SOL with 5 transactions gets its own allowance.`;
+    throw new HttpError(402, `${feature}: ${why} Go Pro for unlimited site and logo forensics.`, { upgrade: '/#pricing', used: c.used, limit, identity: id.identity });
+  }
+  // Then the address ceiling, which cycling funded wallets through one connection runs into.
+  const ceiling = await consume(env.DB, `deep:ipall:${access.ip}`, day, limit * DEEP_IP_CEILING_FACTOR);
+  if (!ceiling.allowed) {
+    throw new HttpError(402, `${feature}: this network address has used its free deep checks for today. Go Pro for unlimited site and logo forensics.`, { upgrade: '/#pricing', used: ceiling.used, limit: ceiling.limit });
   }
 }

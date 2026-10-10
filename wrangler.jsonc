@@ -101,8 +101,13 @@
     // Plan limits: free engine runs per IP per day, API calls per key per month.
     "FREE_SCANS_PER_DAY": "25",
     "API_CALLS_PER_MONTH": "50000",
-    // Site renders and logo checks per free IP per day (0 makes them Pro-only).
+    // Site renders and logo checks per free identity per day (0 makes them
+    // Pro-only). A free allowance follows a signed-in wallet only when the
+    // wallet holds FREE_WALLET_MIN_SOL and has FREE_WALLET_MIN_TXS signatures;
+    // every other visitor shares the network address's allowance (lib/access.ts).
     "FREE_DEEP_CHECKS_PER_DAY": "3",
+    "FREE_WALLET_MIN_SOL": "0.01",
+    "FREE_WALLET_MIN_TXS": "5",
     // Canonical public URL; also in .env.production (inlined at build time).
     "NEXT_PUBLIC_APP_URL": "https://rughawk.xyz",
     // `default` is created automatically by AI Gateway on first use. For

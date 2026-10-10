@@ -153,7 +153,7 @@ export function AccountView() {
             <div className="w-full md:w-auto"><PricingCta plan="api" label="Upgrade to API" /></div>
           </div>
         ) : null}
-        {!paid ? <p className="mt-4 text-xs text-muted">Free plan: {me.limits.freeScansPerDay} fresh scans a day, Predator AI verdicts, Ask the Hawk, Wallet Shield, shareable risk cards.</p> : null}
+        {!paid ? <p className="mt-4 text-xs text-muted">Free plan: {me.limits.freeScansPerDay} fresh scans and {me.limits.freeDeepChecksPerDay} site or logo deep checks a day for this wallet, Predator AI verdicts, Ask the Hawk, Wallet Shield, shareable risk cards.</p> : null}
       </div>
 
       {me.plan === 'api' ? <ApiKeyCard me={me} /> : null}

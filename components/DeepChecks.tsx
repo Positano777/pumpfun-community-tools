@@ -6,20 +6,39 @@ import type { PublicSiteReview } from '@/lib/ai/site';
 import type { PublicLogoReview } from '@/lib/ai/vision';
 import { Section } from './ui';
 import { plural } from '@/lib/format';
+import { useAccount } from './useAccount';
+
+type Check = 'site' | 'logo';
 
 export function DeepChecks({ mint, website, socials, dna }: { mint: string; website: string | null; socials: Socials; dna: DnaMatch[] }) {
+  const { signedIn, signIn, busy: signingIn, error: signInError } = useAccount();
   const [site, setSite] = useState<PublicSiteReview | null>(null);
   const [siteBusy, setSiteBusy] = useState(false);
   const [logo, setLogo] = useState<{ review: PublicLogoReview | null; impersonation: boolean } | null>(null);
   const [logoBusy, setLogoBusy] = useState(false);
   const [watching, setWatching] = useState(false);
   const [watchNote, setWatchNote] = useState<string | null>(null);
-  const [locked, setLocked] = useState<{ site?: string; logo?: string }>({});
+  const [locked, setLocked] = useState<Partial<Record<Check, string>>>({});
+  const [needSignIn, setNeedSignIn] = useState<Partial<Record<Check, string>>>({});
+  const [pending, setPending] = useState<Check | null>(null);
   const [alerts, setAlerts] = useState<{ severity: string; message: string; created_at: number }[]>([]);
 
   useEffect(() => {
     fetch(`/api/watch?address=${mint}`).then((r) => r.json()).then((d) => setAlerts(d.alerts ?? [])).catch(() => undefined);
   }, [mint]);
+
+  /** A 401 with signIn means: connect and sign, then the same check runs again on its own. */
+  function gated(check: Check, status: number, d: { error?: string; signIn?: boolean }): boolean {
+    if (status === 401 && d.signIn) {
+      setNeedSignIn((n) => ({ ...n, [check]: d.error ?? 'Sign in with your wallet to run free deep checks.' }));
+      return true;
+    }
+    if (status === 402) {
+      setLocked((l) => ({ ...l, [check]: d.error ?? 'Go Pro for unlimited deep checks.' }));
+      return true;
+    }
+    return false;
+  }
 
   async function runSite() {
     if (!website) return;
@@ -27,10 +46,8 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
     try {
       const r = await fetch('/api/ai/site', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ url: website }) });
       const d = await r.json();
-      if (r.status === 402) {
-        setLocked((l) => ({ ...l, site: d.error ?? 'Pro feature' }));
-        return;
-      }
+      if (gated('site', r.status, d)) return;
+      setNeedSignIn((n) => ({ ...n, site: undefined }));
       setSite(d.review ?? null);
     } finally {
       setSiteBusy(false);
@@ -42,14 +59,29 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
     try {
       const r = await fetch(`/api/ai/logo?mint=${mint}`);
       const d = await r.json();
-      if (r.status === 402) {
-        setLocked((l) => ({ ...l, logo: d.error ?? 'Pro feature' }));
-        return;
-      }
+      if (gated('logo', r.status, d)) return;
+      setNeedSignIn((n) => ({ ...n, logo: undefined }));
       setLogo(d);
     } finally {
       setLogoBusy(false);
     }
+  }
+
+  // The check the visitor asked for before signing in runs once the session exists.
+  useEffect(() => {
+    if (!pending || !signedIn) return;
+    const check = pending;
+    setPending(null);
+    setNeedSignIn((n) => ({ ...n, [check]: undefined }));
+    if (check === 'site') void runSite();
+    else void runLogo();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pending, signedIn]);
+
+  async function signInThen(check: Check) {
+    setPending(check);
+    const result = await signIn();
+    if (result === 'failed') setPending(null);
   }
 
   async function watch() {
@@ -69,6 +101,17 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
     </div>
   );
 
+  const signInPrompt = (check: Check, text: string) => (
+    <div className="mt-4 rounded-lg border border-graphite bg-ink/50 p-3 text-xs">
+      <div className="font-semibold text-bone">Your wallet is your account</div>
+      <p className="mt-1 text-muted">{text} Signing is a plain message: no transaction, no fee.</p>
+      <button type="button" onClick={() => void signInThen(check)} disabled={signingIn || pending === check} className="btn-primary mt-3 !py-1.5 text-xs">
+        {signingIn || pending === check ? 'Check your wallet...' : 'Sign in with wallet'}
+      </button>
+      {signInError ? <p className="mt-2 text-signal">{signInError}</p> : null}
+    </div>
+  );
+
   const verdictTone = site?.verdict === 'drainer-likely' ? 'text-[#FF5A5A]' : site?.verdict === 'suspicious' ? 'text-caution' : 'text-safe';
 
   return (
@@ -80,11 +123,12 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
           <div className="flex justify-between gap-2"><span className="text-muted">X</span>{socials.twitter ? <a href={socials.twitter} target="_blank" rel="noreferrer noopener nofollow" className="truncate text-bone underline underline-offset-4">link</a> : <span className="text-muted">none</span>}</div>
           <div className="flex justify-between gap-2"><span className="text-muted">Telegram</span>{socials.telegram ? <a href={socials.telegram} target="_blank" rel="noreferrer noopener nofollow" className="truncate text-bone underline underline-offset-4">link</a> : <span className="text-muted">none</span>}</div>
         </div>
-        {website && !locked.site ? (
+        {website && !locked.site && !needSignIn.site ? (
           <button type="button" onClick={runSite} disabled={siteBusy} className="btn-ghost mt-4 w-full text-xs">
             {siteBusy ? 'Rendering in a headless browser...' : 'Render & review the site'}
           </button>
         ) : null}
+        {needSignIn.site ? signInPrompt('site', needSignIn.site) : null}
         {locked.site ? upgrade(locked.site) : null}
         {site ? (
           <div className="mt-4 space-y-2 text-sm">
@@ -101,13 +145,13 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
       </Section>
 
       <Section title="Identity forensics" kicker="Vision + Scam DNA">
-        {!locked.logo ? (
+        {!locked.logo && !needSignIn.logo ? (
           <button type="button" onClick={runLogo} disabled={logoBusy} className="btn-ghost w-full text-xs">
             {logoBusy ? 'Predator AI is looking...' : 'Check the logo for brand impersonation'}
           </button>
-        ) : (
-          upgrade(locked.logo)
-        )}
+        ) : null}
+        {needSignIn.logo ? signInPrompt('logo', needSignIn.logo) : null}
+        {locked.logo ? upgrade(locked.logo) : null}
         {logo ? (
           <div className="mt-3 text-sm">
             {logo.review ? (

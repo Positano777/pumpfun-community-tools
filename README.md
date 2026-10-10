@@ -153,6 +153,14 @@ Live AI checks: Llama 4 Scout verdicts (about 4 s, gateway-routed), copilot grou
 - **API from $99/mo**: Telegram trading bots, launchpads, wallets (they already pay for rug checks).
 - **Shield reclaim fee**: optional, disclosed % of reclaimed rent, fail-closed when no treasury is configured.
 
+## Free tier abuse resistance
+
+A free allowance keyed by IP alone throttles shared addresses (mobile carriers, offices) and is trivially rotated through proxies; one keyed by wallet alone is keyed by nothing, since a keypair is free. RugHawk combines three layers (`lib/access.ts`, `lib/eligibility.ts`):
+
+1. **Identity.** A signed-in wallet that holds at least `FREE_WALLET_MIN_SOL` (0.01) and has at least `FREE_WALLET_MIN_TXS` (5) signatures gets its own daily allowance. Manufacturing such wallets in bulk costs SOL and transactions. Every other visitor, anonymous or signed in with an empty keypair, shares the network address's allowance, so a thousand fresh wallets from one address are worth one address. Eligibility is read from the chain (balance plus newest signatures) and cached a day.
+2. **Address ceiling.** A second counter caps every free run from an address whichever wallets sign in from it (4x the scan allowance, 3x the deep-check allowance), so cycling funded wallets through one connection runs out too.
+3. **Sign-in for anything that costs real money.** Site renders (Browser Run) and logo vision need a signed session: the wallet is the account, and the sign-in is the first step of the upgrade. Cached results never consume an allowance, and the edge rate limits plus the AI Gateway spend limit are the global circuit breakers.
+
 ## Security posture
 
 Endpoint tokens live only as Worker secrets. The RPC relay is origin-checked and method-allowlisted. Every input address is validated. The copilot screens every message for injection patterns and runs Llama Guard 3 before the model sees it; the model only explains deterministic evidence and cannot trigger actions. Shield builds transactions client-side and the user signs them in their own wallet; RugHawk never holds keys. Report security issues to security@raptorlabs.dev.

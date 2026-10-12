@@ -100,7 +100,7 @@ export function AiVerdictPanel({ kind, address, score }: { kind: 'token' | 'wall
                 type="button"
                 onClick={() => (reading ? speaker.stop() : void speaker.speak(`${shown.headline}. ${shown.summary}`, { id: 'verdict', lang: voice }))}
                 className={`btn-ghost !px-3 !py-1.5 text-xs ${reading ? '!border-signal !text-signal' : ''}`}
-                title="Hear the verdict (Deepgram Aura-2 on Workers AI)"
+                title="Hear the verdict read aloud"
               >
                 {reading ? 'Stop' : 'Listen'}
               </button>

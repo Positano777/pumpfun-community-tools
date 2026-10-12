@@ -2,6 +2,7 @@ import { getEnv } from '@/lib/env';
 import { tokenReport } from '@/lib/service';
 import { deliverAlerts, pollTelegram } from '@/lib/billing/alerts';
 import { pruneUsage } from '@/lib/account';
+import { syncPlaybookIfChanged } from '@/lib/ai/playbook-sync';
 import { json } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
@@ -11,14 +12,18 @@ export const dynamic = 'force-dynamic';
  * recently checked watched tokens and turns material changes into alerts:
  * grade worsened, liquidity collapsed, deployer sold. Alerts go to the
  * token page for everyone and to Telegram and webhooks for subscribed
- * paid wallets. The same run links new Telegram chats and prunes quota
- * counters.
+ * paid wallets. The same run links new Telegram chats, prunes quota
+ * counters and re-uploads the playbook when a deploy changed it.
  */
 export async function POST(req: Request) {
   const { env, ctx } = await getEnv();
   if (!env.CRON_SECRET || req.headers.get('x-cron-key') !== env.CRON_SECRET) return json({ error: 'Forbidden' }, { status: 403 });
   if (!env.DB) return json({ error: 'No database' }, { status: 503 });
-  const [telegramLinked] = await Promise.all([pollTelegram(env), pruneUsage(env.DB).catch(() => undefined)]);
+  const [telegramLinked, , playbook] = await Promise.all([
+    pollTelegram(env),
+    pruneUsage(env.DB).catch(() => undefined),
+    syncPlaybookIfChanged(env).catch(() => 'failed' as const),
+  ]);
   const { results } = await env.DB.prepare(`SELECT * FROM watchlist ORDER BY last_checked ASC LIMIT 12`).bind().all<{
     address: string; label: string | null; last_risk: number | null; last_grade: string | null; last_liquidity: number | null;
   }>();
@@ -49,5 +54,5 @@ export async function POST(req: Request) {
       console.warn('[watchtower] scan failed', w.address, e instanceof Error ? e.message : e);
     }
   }
-  return json({ checked: results.length, alerts, delivered, telegramLinked });
+  return json({ checked: results.length, alerts, delivered, telegramLinked, playbook });
 }

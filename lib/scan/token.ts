@@ -151,7 +151,7 @@ export async function scanToken(ctx: ScanContext, mint: string): Promise<TokenRe
     scannedAt: ctx.now(),
     durationMs: Date.now() - started,
     rpcCalls: ctx.rpc.calls - callsBefore,
-    rpcProviders: ctx.rpc.since(providersBefore),
+    rpcProviders: ctx.rpc.rolesSince(providersBefore),
     program: parsed.program,
     token: {
       name,

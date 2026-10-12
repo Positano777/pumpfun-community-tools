@@ -11,8 +11,10 @@ import { associatedTokenAddress, base64ToBytes, bytesToAddress, isAddress } from
  * Launch-window forensics, built on what our own field study measured on
  * trending pump.fun / LaunchLab launches (2026-09-20, 13 trending tokens plus
  * 70 control launches):
- *   - dev-buy-and-dump: 13 of 13 dead control launches saw the creator exit,
- *     median 7 seconds after launch
+ *   - dev-buy-and-dump: re-measured 2026-10-12 with this module on 40 random
+ *     dead pump.fun launches (scripts/dev-exit-study.ts): 23 of the 28
+ *     deployers that bought at creation sold all of it, median 59 seconds
+ *     after launch, and none locked or burned it
  *   - same-slot ramp buys by partner wallets inflate the first candle
  *   - creators who never sold were the only survivors at T+5h
  *
@@ -477,7 +479,7 @@ export function launchFindings(l: LaunchForensics, now: number): Finding[] {
       severity: critical ? 'critical' : minor ? 'medium' : 'high',
       category: 'launch',
       title: `Deployer ${critical ? 'dumped' : 'sold'} ${share(sold)}${at(l.devSells)}`,
-      detail: 'Dev-buy-and-dump is the default rug on launchpads. In our field sample, 13 of 13 dead launches had the creator exit, median 7 seconds after launch.',
+      detail: 'Dev-buy-and-dump is the default rug on launchpads. On 40 random dead pump.fun launches measured in October 2026, 23 of the 28 deployers that bought at creation sold all of it, median 59 seconds after launch.',
       weight: critical ? 55 : minor ? 10 : 25,
       evidence: txEvidence('Sell tx', l.devSells),
     });

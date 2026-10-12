@@ -63,7 +63,7 @@ export function PricingCta({ plan, label, hot = false }: { plan: PaidPlan; label
     if (result === 'failed') setIntent(false);
   }
 
-  const text = current ? 'Current plan · open account' : covered ? 'Included in your API plan' : working ? 'Opening Stripe...' : busy ? 'Check your wallet...' : label;
+  const text = current ? 'Current plan · open account' : covered ? 'Included in your API plan' : working ? 'Opening checkout...' : busy ? 'Check your wallet...' : label;
   return (
     <div className="mt-6">
       <button type="button" onClick={() => void go()} disabled={working || busy} className={`${hot ? 'btn-primary' : 'btn-ghost'} w-full`}>

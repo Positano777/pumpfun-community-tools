@@ -11,8 +11,8 @@ const FEATURES = [
   { k: 'Deployer dossier', t: 'Who launched it, really', d: 'Wallet age at launch, serial-launcher detection, and the funding trail back to an exchange or a chain of burner wallets.' },
   { k: 'Authority audit', t: 'Every power the issuer still holds', d: 'Mint and freeze authority, mutable metadata and all Token-2022 traps: permanent delegate, transfer hooks, fee hikes, default-frozen, pausable.' },
   { k: 'Holder intelligence', t: 'Concentration without the noise', d: 'Top holders classified as pools, bonding curves, burns, lockers, exchange custody or plain wallets before any percentage is computed.' },
-  { k: 'Scam DNA', t: 'Same scam, new mint', d: 'Every token identity is embedded with Predator AI and stored in Vectorize, so the 40th copy of a flagged narrative lights up instantly.' },
-  { k: 'Site & logo forensics', t: 'What the website really shows', d: 'Browser Run renders the token website the way a victim sees it, then Predator AI reviews it for drainer lures and checks the logo for brand impersonation.' },
+  { k: 'Scam DNA', t: 'Same scam, new mint', d: 'Every token identity is embedded by Predator AI into a similarity index, so the 40th copy of a flagged narrative lights up instantly.' },
+  { k: 'Site & logo forensics', t: 'What the website really shows', d: 'A real browser renders the token website the way a victim sees it, then Predator AI reviews it for drainer lures and checks the logo for brand impersonation.' },
 ];
 
 const TIERS: { name: string; price: string; per: string; items: string[]; cta: string; href?: string; plan?: 'pro' | 'api'; hot?: boolean }[] = [
@@ -47,7 +47,7 @@ export default function Home() {
             <Link className="underline underline-offset-4 hover:text-bone" href="/wallet/JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4">Jupiter program</Link>
           </div>
           <Pulse />
-          <div className="mt-10 text-[11px] uppercase tracking-[0.2em] text-muted">Cloudflare Workers AI · Vectorize · Browser Run · AI Search · QuickNode · Ankr</div>
+          <div className="mt-10 text-[11px] uppercase tracking-[0.2em] text-muted">Launch-block forensics · Deployer dossiers · Scam DNA · Wallet Shield · Predator AI</div>
         </div>
       </section>
 
@@ -93,10 +93,10 @@ export default function Home() {
           <div className="md:col-span-1">
             <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Field-tested</div>
             <h3 className="mt-2 text-xl font-extrabold">Rules from measured data, not vibes.</h3>
-            <p className="mt-2 text-xs text-muted">RaptorLabs mainnet study, September 2026: 13 trending tokens, 70 control launches.</p>
+            <p className="mt-2 text-xs text-muted">RaptorLabs mainnet measurements: 40 random dead pump.fun launches re-measured in October 2026, plus 13 trending tokens and 70 control launches from September 2026.</p>
           </div>
           {[
-            ['13 / 13', 'dead control launches where the creator exited, median 7 seconds after launch'],
+            ['23 / 28', 'deployers who bought at creation sold the whole bag, median 59 seconds after launch'],
             ['10 / 13', 'trending tokens dead or dying within hours'],
             ['90', 'launches in 36.7 hours from a single serial-launcher wallet'],
           ].map(([n, t]) => (
@@ -112,7 +112,7 @@ export default function Home() {
         <div className="text-center">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Pricing</div>
           <h2 className="mt-2 text-3xl font-extrabold tracking-tight">Free for traders. Built for platforms.</h2>
-          <p className="mt-3 text-sm text-muted">Billing by Stripe. Your wallet is your account: connect, sign one message, pay by card. Cancel any time from your account.</p>
+          <p className="mt-3 text-sm text-muted">Your wallet is your account: connect, sign one message, pay by card. Cancel any time from your account.</p>
         </div>
         <div className="mt-8 grid gap-4 md:grid-cols-3">
           {TIERS.map((t) => (

@@ -53,7 +53,7 @@ export async function stripe<T>(secret: string, method: 'GET' | 'POST' | 'DELETE
     signal: AbortSignal.timeout(15_000),
   });
   const data = (await res.json().catch(() => ({}))) as { error?: { message?: string } };
-  if (!res.ok) throw new HttpError(502, `Stripe: ${data.error?.message ?? `HTTP ${res.status}`}`);
+  if (!res.ok) throw new HttpError(502, `Payment processor: ${data.error?.message ?? `HTTP ${res.status}`}`);
   return data as T;
 }
 
@@ -139,7 +139,7 @@ export async function checkoutUrl(env: AppEnv, opts: { wallet: string; plan: Pai
     billing_address_collection: 'auto',
     ...(opts.customer ? { customer: opts.customer } : opts.email ? { customer_email: opts.email } : {}),
   }, fetchImpl);
-  if (!session.url) throw new HttpError(502, 'Stripe did not return a checkout URL');
+  if (!session.url) throw new HttpError(502, 'The payment processor did not return a checkout URL');
   return session.url;
 }
 
@@ -203,7 +203,7 @@ export async function switchPlan(env: AppEnv, subscriptionId: string, plan: Paid
   if (!env.STRIPE_SECRET_KEY || !price) throw new HttpError(503, 'Plan changes need billing management: cancel the current plan, then subscribe to the new one.');
   const current = await stripe<{ items?: { data?: { id?: string }[] } }>(env.STRIPE_SECRET_KEY, 'GET', `/v1/subscriptions/${subscriptionId}`, {}, fetchImpl);
   const itemId = current.items?.data?.[0]?.id;
-  if (!itemId) throw new HttpError(502, 'Stripe subscription has no items');
+  if (!itemId) throw new HttpError(502, 'The subscription has no items');
   const updated = await stripe<unknown>(env.STRIPE_SECRET_KEY, 'POST', `/v1/subscriptions/${subscriptionId}`, {
     items: [{ id: itemId, price }],
     proration_behavior: 'create_prorations',

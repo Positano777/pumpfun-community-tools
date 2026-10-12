@@ -1,17 +1,17 @@
 import { getEnv } from '@/lib/env';
-import { rpcUpstreams } from '@/lib/rpc';
+import { providerRole, rpcUpstreams } from '@/lib/rpc';
 import { json } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
 
-/** GET /api/health: which services are live and which RPC providers answer. */
+/** GET /api/health: which services are live and which RPC roles answer (roles only, never provider names). */
 export async function GET() {
   const { env } = await getEnv();
   const probe = JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'getHealth' });
   const rpc = await Promise.all(
     rpcUpstreams(env).map(async (u) => {
       const t = Date.now();
-      const base = { name: u.name, role: u.archive ? 'archive' : 'hot', balanced: u.weight > 0 };
+      const base = { role: providerRole(u) };
       try {
         const r = await fetch(u.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: probe, signal: AbortSignal.timeout(4000) });
         return { ...base, ok: r.ok, ms: Date.now() - t };

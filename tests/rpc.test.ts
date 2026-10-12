@@ -1,6 +1,6 @@
 import { beforeEach, test } from 'node:test';
 import assert from 'node:assert/strict';
-import { SolanaRpc, methodClass, relayOrder, resetRpcState, rpcUpstreams } from '../lib/rpc';
+import { SolanaRpc, methodClass, providerRole, publicRpcDetail, relayOrder, resetRpcState, rpcUpstreams } from '../lib/rpc';
 
 const QN = 'https://qn.example/';
 const AN = 'https://ankr.example/';
@@ -56,6 +56,13 @@ test('rpc: state reads are split evenly between QuickNode and Ankr', async () =>
   assert.equal(rpc.callsByProvider.ankr, 10);
   assert.equal(rpc.calls, 20);
   assert.deepEqual(rpc.since({ quicknode: 4 }), { quicknode: 6, ankr: 10 });
+  assert.deepEqual(rpc.rolesSince({ quicknode: 4 }), { archive: 6, hot: 10 });
+});
+
+test('rpc: public output names roles, never providers or endpoints', () => {
+  assert.deepEqual(rpcUpstreams(env).map(providerRole), ['archive', 'hot', 'failover']);
+  assert.equal(publicRpcDetail(`quicknode rate limited at ${QN}abc`), 'rpc rate limited at [endpoint]');
+  assert.equal(publicRpcDetail('Ankr: block cleaned up'), 'rpc: block cleaned up');
 });
 
 test('rpc: history walks never touch the hot provider', async () => {

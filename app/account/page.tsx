@@ -12,7 +12,7 @@ export default function AccountPage() {
       <div className="mb-8 max-w-2xl">
         <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Account</div>
         <h1 className="mt-2 text-3xl font-extrabold tracking-tight">Your plan, your key, your alerts.</h1>
-        <p className="mt-3 text-muted">Billing runs on Stripe. Your wallet signs in; nothing about it beyond the public key is stored.</p>
+        <p className="mt-3 text-muted">Your wallet signs in, and nothing about it beyond the public key is stored. Card details go straight to the payment processor and never touch RugHawk.</p>
       </div>
       <AccountView />
     </div>

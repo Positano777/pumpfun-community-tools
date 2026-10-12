@@ -17,7 +17,7 @@ export const PLAYBOOK: PlaybookDoc[] = [
     body: `# How Solana rugs actually happen
 
 ## 1. Dev buy and dump (bonding-curve launchpads)
-On pump.fun, Raydium LaunchLab, Meteora Dynamic Bonding Curve and Moonshot there is no liquidity pool to pull while the token trades on its curve. The rug is the creator buying a large share inside the creation transaction and selling it into the first buyers. RaptorLabs' September 2026 field study found the creator exited in 13 of 13 dead control launches, with a median of 7 seconds after launch. Creators who never sold were the only tokens still alive five hours later. RugHawk flags DEV_SOLD with the exact seconds after launch and the share of the dev bag that was sold.
+On pump.fun, Raydium LaunchLab, Meteora Dynamic Bonding Curve and Moonshot there is no liquidity pool to pull while the token trades on its curve. The rug is the creator buying a large share inside the creation transaction and selling it into the first buyers. RaptorLabs re-measured it in October 2026 with RugHawk's own launch module on 40 random dead pump.fun launches: 28 deployers bought at creation and 23 of them sold all of it, median 59 seconds after launch. Seven sold within 4 seconds, and none locked or burned the bag. In the September 2026 field study, creators who never sold were the only tokens still alive five hours later. RugHawk flags DEV_SOLD with the exact seconds after launch and the share of the dev bag that was sold.
 
 ## 2. Bundled launches
 A bundle puts the creation transaction and several buys from wallets the operator controls into the same block (usually through Jito). Those wallets hold supply bought before anyone else could see the token, and they sell into the first public demand. RugHawk reads the creation block itself and reports every wallet that bought in it, plus the share of supply they took and whether they still hold it.
@@ -107,7 +107,7 @@ Batch signing many transactions at once hides what each one does. Use wallets th
 Attackers send dust from addresses that copy the first and last characters of an address you use, hoping you copy the wrong one from your history. Always verify the full address. RugHawk flags lookalike addresses in wallet scans.
 
 ## Fake airdrops and claim sites
-Unknown tokens arriving in your wallet often link to a claim site. A memecoin site that asks you to connect a wallet to claim something is the standard drainer lure. RugHawk renders token websites with Browser Run and reviews what they actually show.
+Unknown tokens arriving in your wallet often link to a claim site. A memecoin site that asks you to connect a wallet to claim something is the standard drainer lure. RugHawk renders token websites in a real browser and reviews what they actually show.
 
 ## Hygiene
 Use a burner wallet for new launches, a hardware wallet for savings, revoke stale approvals, and close empty token accounts to reclaim their rent.`,
@@ -134,13 +134,13 @@ Partial results: if a module could not run (for example the creation transaction
     title: 'Field study: why trending memecoins die',
     body: `# Field study: 13 trending tokens and 70 control launches (September 2026)
 
-Measured by RaptorLabs on Solana mainnet using QuickNode RPC and DexScreener data.
+Measured by RaptorLabs on Solana mainnet.
 
 - 10 of the 13 trending tokens were dead or dying within hours.
-- pump.fun produces about 1,186 launches per hour, roughly 25,400 per day. 39 of 60 random launches got 35 or fewer successful transactions in their entire life.
+- pump.fun produced about 1,186 launches per hour, roughly 25,400 per day. An October 2026 count found about 1,750 per hour. 39 of 60 random launches got 35 or fewer successful transactions in their entire life.
 - Operator capital in the creation transaction was the only measured predictor of first-hour volume, and the two operators who spent the most (86 SOL each) lost about 83 SOL each.
 - 71.4% of random launches duplicate an existing name or ticker; duplication had no measurable effect on volume.
-- Dev-buy-and-dump: on 13 random dead launches, 13 of 13 creators exited, median 7 seconds after launch.
+- Dev-buy-and-dump, re-measured in October 2026 with RugHawk's outflow classifier, which separates sales from locks, burns and transfers: of 40 random dead launches, 28 deployers bought at creation and 23 of them sold all of it, median 59 seconds after launch.
 - Transaction counts are not demand: one token showed 10,417 transactions of which 96.51% failed.
 - Graduation from pump.fun costs a fixed toll from the curve and happens for well under 2% of launches.
 

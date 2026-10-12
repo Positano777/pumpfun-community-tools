@@ -1,5 +1,5 @@
 import { getEnv } from '@/lib/env';
-import { noteFailure, relayOrder, rpcUpstreams } from '@/lib/rpc';
+import { noteFailure, providerRole, publicRpcDetail, relayOrder, rpcUpstreams } from '@/lib/rpc';
 import { json, originAllowed } from '@/lib/http';
 
 export const dynamic = 'force-dynamic';
@@ -41,12 +41,12 @@ export async function POST(req: Request) {
       const res = await fetch(up.url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body, signal: AbortSignal.timeout(12_000) });
       if (res.status === 429 || res.status >= 500 || res.status === 403) {
         noteFailure(up, res.status === 429 ? 3000 : 10_000);
-        last = `${up.name} responded ${res.status}`;
+        last = `${providerRole(up)} node responded ${res.status}`;
         continue;
       }
-      return new Response(res.body, { status: res.status, headers: { 'Content-Type': 'application/json', 'x-rughawk-rpc': up.name } });
+      return new Response(res.body, { status: res.status, headers: { 'Content-Type': 'application/json', 'x-rughawk-rpc': providerRole(up) } });
     } catch (e) {
-      last = `${up.name}: ${e instanceof Error ? e.message : 'failed'}`;
+      last = `${providerRole(up)} node: ${publicRpcDetail(e instanceof Error ? e.message : 'failed')}`;
     }
   }
   return json({ error: `All RPC providers failed: ${last}` }, { status: 502 });

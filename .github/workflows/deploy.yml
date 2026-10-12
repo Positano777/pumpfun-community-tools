@@ -1,5 +1,5 @@
-# Continuous deployment: every push to main runs the checks and deploys the
-# Worker to Cloudflare (npm run deploy: OpenNext build + wrangler deploy).
+# Continuous deployment: every push to main runs the checks and deploys to
+# production (npm run deploy).
 # Pull requests run the checks only.
 #
 # Repository secrets (Settings > Secrets and variables > Actions):
@@ -31,7 +31,7 @@ jobs:
       - run: npm test
 
   deploy:
-    name: Deploy to Cloudflare
+    name: Deploy to production
     needs: check
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
@@ -49,10 +49,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci --no-audit --no-fund
-      - name: Require the Cloudflare secrets
+      - name: Require the deployment secrets
         run: |
           if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
-            echo "Set CLOUDFLARE_API_TOKEN and CLOUDFLARE_ACCOUNT_ID as repository secrets (see the header of this workflow)." >&2
+            echo "Set the deployment secrets named in the header of this workflow." >&2
             exit 1
           fi
       - run: npm run deploy

@@ -41,7 +41,7 @@ export function DnaSearch() {
     <div className="card mt-6 p-5 md:p-6">
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Scam DNA · Vectorize</div>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Scam DNA · Predator AI</div>
           <h2 className="text-lg font-bold">Describe a token. See whether the hawk has already flagged that narrative.</h2>
           <p className="mt-1 text-sm text-muted">Every scanned identity is embedded with Predator AI. Same scam, new mint: the copies light up.</p>
         </div>

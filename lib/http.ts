@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { NotAMintError } from './scan/token';
 import { HttpError } from './errors';
+import { publicRpcDetail } from './rpc';
 
 export { HttpError };
 
@@ -17,7 +18,7 @@ export function fail(e: unknown, fallbackStatus = 500) {
   const message = e instanceof Error ? e.message : 'Unexpected error';
   const status = /invalid solana address/i.test(message) ? 400 : fallbackStatus;
   if (status >= 500) console.error('[rughawk] request failed:', message);
-  return json({ error: status >= 500 ? 'Scan failed. The network or a provider is slow; try again in a moment.' : message, detail: status >= 500 ? message.slice(0, 200) : undefined }, { status });
+  return json({ error: status >= 500 ? 'Scan failed. The network or a provider is slow; try again in a moment.' : message, detail: status >= 500 ? publicRpcDetail(message) : undefined }, { status });
 }
 
 /** API-plan responses carry the monthly quota position. */

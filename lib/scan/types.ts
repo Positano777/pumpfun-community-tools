@@ -189,7 +189,7 @@ export interface TokenReport {
   scannedAt: number;
   durationMs: number;
   rpcCalls: number;
-  /** Calls per RPC provider (QuickNode / Ankr split), when the scan ran live. */
+  /** Calls per RPC role (archive, hot, failover), when the scan ran live. */
   rpcProviders?: Record<string, number>;
   program: 'spl-token' | 'spl-token-2022';
   token: TokenInfo;
@@ -236,7 +236,7 @@ export interface WalletReport {
   scannedAt: number;
   durationMs: number;
   rpcCalls: number;
-  /** Calls per RPC provider (QuickNode / Ankr split), when the scan ran live. */
+  /** Calls per RPC role (archive, hot, failover), when the scan ran live. */
   rpcProviders?: Record<string, number>;
   accountType: 'wallet' | 'program' | 'pda' | 'token-account' | 'mint' | 'stake' | 'unknown' | 'empty';
   owner: string | null;

@@ -116,7 +116,7 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
-      <Section title="Website forensics" kicker="Browser Run + Predator AI">
+      <Section title="Website forensics" kicker="Live render + Predator AI">
         <div className="space-y-1.5 text-sm">
           <div className="flex justify-between gap-2"><span className="text-muted">Website</span>{website ? <a href={website} target="_blank" rel="noreferrer noopener nofollow" className="truncate text-bone underline underline-offset-4">{socials.domain ?? website}</a> : <span className="text-muted">none</span>}</div>
           <div className="flex justify-between gap-2"><span className="text-muted">Domain age</span><span className={socials.domainAgeDays !== null && socials.domainAgeDays < 30 ? 'text-caution' : ''}>{socials.domainAgeDays !== null ? plural(socials.domainAgeDays, 'day') : 'unknown'}</span></div>

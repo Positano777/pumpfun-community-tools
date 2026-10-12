@@ -19,7 +19,7 @@ export function Footer() {
         <div className="space-y-1.5">
           <div className="font-semibold text-bone">Open source</div>
           <a href="https://github.com/bobvasic/rughawk" target="_blank" rel="noreferrer noopener" className="block hover:text-bone">Source on GitHub</a>
-          <p>One Cloudflare Worker: Workers AI, Vectorize, Browser Run, AI Search, D1, KV, R2. RPC by QuickNode and Ankr.</p>
+          <p>MIT licensed. Every detection rule and the scoring engine are in the repository.</p>
           <a href="mailto:security@raptorlabs.dev" className="block hover:text-bone">Report a security issue</a>
         </div>
         <div className="space-y-1.5">

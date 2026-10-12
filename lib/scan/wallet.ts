@@ -232,7 +232,7 @@ export async function scanWallet(ctx: ScanContext, address: string): Promise<Wal
     scannedAt: ctx.now(),
     durationMs: Date.now() - started,
     rpcCalls: ctx.rpc.calls - callsBefore,
-    rpcProviders: ctx.rpc.since(providersBefore),
+    rpcProviders: ctx.rpc.rolesSince(providersBefore),
     accountType,
     owner: acct?.owner ?? null,
     label: label ?? (acct && !acct.executable && acct.owner !== SYSTEM_PROGRAM ? (KNOWN_PROGRAMS[acct.owner] ? `${KNOWN_PROGRAMS[acct.owner].name} account` : null) : null),

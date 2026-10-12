@@ -83,6 +83,23 @@ export function rpcUpstreams(env: Env): RpcUpstream[] {
   return chain;
 }
 
+/**
+ * What the outside world may learn about a provider: its role, never its
+ * name. Reports, the health check and the browser relay are public.
+ */
+export type RpcRole = 'archive' | 'hot' | 'failover';
+
+export function providerRole(u: Pick<RpcUpstream, 'archive' | 'weight'>): RpcRole {
+  return u.weight > 0 ? (u.archive ? 'archive' : 'hot') : 'failover';
+}
+
+const PROVIDER_NAMES = /\b(?:quicknode|quiknode|ankr|helius)\b/gi;
+
+/** Error text safe to send to a client: endpoint URLs and provider names removed. */
+export function publicRpcDetail(message: string): string {
+  return message.replace(/https?:\/\/\S+/g, '[endpoint]').replace(PROVIDER_NAMES, 'rpc').slice(0, 200);
+}
+
 export type MethodClass = 'state' | 'history' | 'recent' | 'heavy' | 'submit';
 
 const HISTORY_METHODS = new Set(['getSignaturesForAddress', 'getConfirmedSignaturesForAddress2', 'getBlocks', 'getBlocksWithLimit']);
@@ -273,6 +290,17 @@ export class SolanaRpc {
     for (const [name, n] of Object.entries(this.callsByProvider)) {
       const d = n - (snapshot[name] ?? 0);
       if (d > 0) out[name] = d;
+    }
+    return out;
+  }
+
+  /** Calls since `snapshot()` per role: the split reports publish, so provider names stay private. */
+  rolesSince(snapshot: Record<string, number>): Record<string, number> {
+    const out: Record<string, number> = {};
+    for (const [name, n] of Object.entries(this.since(snapshot))) {
+      const u = this.upstreams.find((x) => x.name === name);
+      const role = u ? providerRole(u) : 'failover';
+      out[role] = (out[role] ?? 0) + n;
     }
     return out;
   }

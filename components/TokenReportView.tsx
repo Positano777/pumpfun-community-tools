@@ -186,14 +186,14 @@ export function TokenReportView({ mint }: { mint: string }) {
         </Section>
 
         <div className="space-y-6">
-          <Section title="Market" kicker="DexScreener">
+          <Section title="Market" kicker="Live pairs">
             {r.market ? (
               <div className="grid grid-cols-2 gap-3">
                 <Stat label="Liquidity" value={r.market.totalLiquidityUsd === 0 && /pump|moonshot|launchlab|dbc/i.test(r.market.dex) ? 'Curve' : usd(r.market.totalLiquidityUsd)} hint={`${r.market.pairs} pair${r.market.pairs > 1 ? 's' : ''} · ${r.market.dex}`} />
                 <Stat label="Market cap" value={usd(r.market.marketCap ?? r.market.fdv)} />
                 <Stat label="24h volume" value={usd(r.market.volume24h)} hint={r.market.buys24h !== null ? `${plural(r.market.buys24h, 'buy')} / ${plural(r.market.sells24h ?? 0, 'sell')}` : undefined} />
                 <Stat label="1h change" value={r.market.priceChange1h !== null ? `${r.market.priceChange1h > 0 ? '+' : ''}${r.market.priceChange1h.toFixed(1)}%` : 'n/a'} tone={(r.market.priceChange1h ?? 0) < 0 ? 'text-signal' : 'text-safe'} />
-                <a href={r.market.url} target="_blank" rel="noreferrer noopener" className="col-span-2 text-xs text-muted underline underline-offset-4 hover:text-bone">Open the pair on DexScreener</a>
+                <a href={r.market.url} target="_blank" rel="noreferrer noopener" className="col-span-2 text-xs text-muted underline underline-offset-4 hover:text-bone">Open the trading pair chart</a>
               </div>
             ) : (
               <p className="text-sm text-muted">No DEX pair indexed.</p>

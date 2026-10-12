@@ -4,7 +4,7 @@ import { AskHawk } from '@/components/AskHawk';
 
 export const metadata: Metadata = {
   title: 'Ask the Hawk',
-  description: 'A Solana security copilot powered by Predator AI, grounded in deterministic scans and the Hawk Playbook, guarded by Prompt Guard and a content safety filter.',
+  description: 'A Solana security copilot powered by Predator AI, grounded in deterministic scans and the Hawk Playbook, guarded by an injection screen and a content safety filter.',
 };
 
 export default function AskPage() {

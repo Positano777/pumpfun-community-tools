@@ -112,7 +112,7 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
     </div>
   );
 
-  const verdictTone = site?.verdict === 'drainer-likely' ? 'text-[#FF5A5A]' : site?.verdict === 'suspicious' ? 'text-caution' : 'text-safe';
+  const verdictTone = site?.verdict === 'drainer-likely' ? 'text-crimson' : site?.verdict === 'suspicious' ? 'text-caution' : 'text-safe';
 
   return (
     <div className="grid gap-6 lg:grid-cols-3">
@@ -191,7 +191,7 @@ export function DeepChecks({ mint, website, socials, dna }: { mint: string; webs
           {alerts.length ? (
             alerts.map((a) => (
               <div key={a.created_at + a.message} className="rounded-lg border border-graphite/60 bg-ink/40 p-2.5 text-xs">
-                <span className={a.severity === 'critical' ? 'text-[#FF5A5A]' : 'text-signal'}>{a.severity.toUpperCase()}</span> · {a.message}
+                <span className={a.severity === 'critical' ? 'text-crimson' : 'text-signal'}>{a.severity.toUpperCase()}</span> · {a.message}
                 <div className="text-muted">{new Date(a.created_at).toISOString().slice(0, 16).replace('T', ' ')} UTC</div>
               </div>
             ))

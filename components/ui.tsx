@@ -7,17 +7,17 @@ import { streamExplain, type ExplainMeta } from '@/lib/hawk-client';
 import { useSpeaker, type SpeakerControl } from './useHawk';
 
 export const GRADE_STYLE: Record<Grade, { color: string; ring: string; label: string; text: string }> = {
-  LOW: { color: '#3FBF7F', ring: 'border-safe/50 bg-safe/10 text-safe', label: 'Low risk', text: 'text-safe' },
-  ELEVATED: { color: '#F0A53A', ring: 'border-caution/50 bg-caution/10 text-caution', label: 'Elevated risk', text: 'text-caution' },
-  HIGH: { color: '#D63B3B', ring: 'border-signal/60 bg-signal/10 text-signal', label: 'High risk', text: 'text-signal' },
-  CRITICAL: { color: '#FF2D2D', ring: 'border-[#FF2D2D]/70 bg-crimson/25 text-[#FF5A5A]', label: 'Critical risk', text: 'text-[#FF5A5A]' },
+  LOW: { color: '#177A4C', ring: 'border-safe/50 bg-safe/10 text-safe', label: 'Low risk', text: 'text-safe' },
+  ELEVATED: { color: '#A85A0B', ring: 'border-caution/50 bg-caution/10 text-caution', label: 'Elevated risk', text: 'text-caution' },
+  HIGH: { color: '#C42B2B', ring: 'border-signal/60 bg-signal/10 text-signal', label: 'High risk', text: 'text-signal' },
+  CRITICAL: { color: '#A20F10', ring: 'border-crimson/60 bg-crimson/10 text-crimson', label: 'Critical risk', text: 'text-crimson' },
 };
 
 export const SEV_STYLE: Record<Severity, { dot: string; label: string; text: string }> = {
-  critical: { dot: 'bg-[#FF2D2D] shadow-[0_0_12px_#FF2D2D]', label: 'Critical', text: 'text-[#FF5A5A]' },
+  critical: { dot: 'bg-crimson shadow-[0_0_10px_rgba(162,15,16,0.45)]', label: 'Critical', text: 'text-crimson' },
   high: { dot: 'bg-signal', label: 'High', text: 'text-signal' },
   medium: { dot: 'bg-caution', label: 'Medium', text: 'text-caution' },
-  low: { dot: 'bg-[#C9B37A]', label: 'Low', text: 'text-[#C9B37A]' },
+  low: { dot: 'bg-[#7D6A2E]', label: 'Low', text: 'text-[#7D6A2E]' },
   info: { dot: 'bg-muted', label: 'Info', text: 'text-muted' },
   good: { dot: 'bg-safe', label: 'Pass', text: 'text-safe' },
 };
@@ -30,8 +30,8 @@ export function RiskDial({ score, grade, size = 168 }: { score: number; grade: G
   return (
     <div className="relative" style={{ width: size, height: size }}>
       <svg viewBox="0 0 100 100" className="h-full w-full -rotate-90">
-        <circle cx="50" cy="50" r={r} fill="none" stroke="#302C2D" strokeWidth="8" />
-        <circle cx="50" cy="50" r={r} fill="none" stroke={style.color} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${c * pct} ${c}`} style={{ filter: `drop-shadow(0 0 6px ${style.color}88)` }} />
+        <circle cx="50" cy="50" r={r} fill="none" stroke="#ECE6E5" strokeWidth="8" />
+        <circle cx="50" cy="50" r={r} fill="none" stroke={style.color} strokeWidth="8" strokeLinecap="round" strokeDasharray={`${c * pct} ${c}`} style={{ filter: `drop-shadow(0 0 6px ${style.color}55)` }} />
       </svg>
       <div className="absolute inset-0 flex flex-col items-center justify-center">
         <div className="font-mono text-5xl font-extrabold tabular-nums" style={{ color: style.color }}>{score}</div>

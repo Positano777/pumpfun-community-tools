@@ -83,7 +83,7 @@ export default function Home() {
         <div className="card p-6 md:p-8">
           <div className="text-[11px] font-semibold uppercase tracking-[0.18em] text-signal">Ask the Hawk</div>
           <h3 className="mt-2 text-2xl font-extrabold">A forensic copilot that cannot be talked into lying.</h3>
-          <p className="mt-3 text-sm text-muted">Paste an address and ask anything. The deterministic engine decides what is dangerous; Predator AI explains it, grounded in the Hawk Playbook, behind Prompt Guard and a content safety filter.</p>
+          <p className="mt-3 text-sm text-muted">Paste an address and ask anything. The deterministic engine decides what is dangerous; Predator AI explains it, grounded in the Hawk Playbook, behind an injection screen and a content safety filter.</p>
           <Link href="/ask" className="btn-ghost mt-6">Ask a question</Link>
         </div>
       </section>

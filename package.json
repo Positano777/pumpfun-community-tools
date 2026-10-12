@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "RugHawk: Solana forensic scanner for tokens and wallets. Spot the rug before it is pulled.",
+  "license": "MIT",
   "type": "module",
   "scripts": {
     "dev": "next dev",
@@ -13,7 +14,8 @@
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
-    "scan": "tsx scripts/scan-cli.ts"
+    "scan": "tsx scripts/scan-cli.ts",
+    "study": "tsx scripts/dev-exit-study.ts"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.2",

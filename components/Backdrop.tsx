@@ -126,8 +126,8 @@ export function Backdrop() {
           const dy = a.y - b.y;
           const d2 = dx * dx + dy * dy;
           if (d2 > LINK * LINK) continue;
-          const alpha = (1 - Math.sqrt(d2) / LINK) * 0.26;
-          ctx.strokeStyle = `rgba(214,59,59,${alpha.toFixed(3)})`;
+          const alpha = (1 - Math.sqrt(d2) / LINK) * 0.2;
+          ctx.strokeStyle = `rgba(196,43,43,${alpha.toFixed(3)})`;
           ctx.beginPath();
           ctx.moveTo(a.x, a.y);
           ctx.lineTo(b.x, b.y);
@@ -136,11 +136,11 @@ export function Backdrop() {
       }
       for (const n of nodes) {
         const glow = 0.35 + 0.25 * Math.sin(n.phase * 1.3);
-        ctx.fillStyle = `rgba(214,59,59,${(glow * 0.3).toFixed(3)})`;
+        ctx.fillStyle = `rgba(196,43,43,${(glow * 0.16).toFixed(3)})`;
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r * 3, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = `rgba(255,205,205,${(0.5 + glow * 0.4).toFixed(3)})`;
+        ctx.fillStyle = `rgba(162,15,16,${(0.35 + glow * 0.3).toFixed(3)})`;
         ctx.beginPath();
         ctx.arc(n.x, n.y, n.r, 0, Math.PI * 2);
         ctx.fill();
@@ -151,18 +151,18 @@ export function Backdrop() {
         const x = a.x + (b.x - a.x) * tr.t;
         const y = a.y + (b.y - a.y) * tr.t;
         const fade = Math.sin(tr.t * Math.PI);
-        ctx.strokeStyle = `rgba(255,120,120,${(0.5 * fade).toFixed(3)})`;
+        ctx.strokeStyle = `rgba(196,43,43,${(0.45 * fade).toFixed(3)})`;
         ctx.lineWidth = 1.2;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(x, y);
         ctx.stroke();
         ctx.lineWidth = 1;
-        ctx.fillStyle = `rgba(214,59,59,${(0.3 * fade).toFixed(3)})`;
+        ctx.fillStyle = `rgba(196,43,43,${(0.16 * fade).toFixed(3)})`;
         ctx.beginPath();
         ctx.arc(x, y, 7, 0, Math.PI * 2);
         ctx.fill();
-        ctx.fillStyle = `rgba(255,170,170,${(0.9 * fade).toFixed(3)})`;
+        ctx.fillStyle = `rgba(162,15,16,${(0.8 * fade).toFixed(3)})`;
         ctx.beginPath();
         ctx.arc(x, y, 2.2, 0, Math.PI * 2);
         ctx.fill();

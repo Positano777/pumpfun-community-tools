@@ -338,7 +338,7 @@ function WatchtowerCard({ me }: { me: Me }) {
             <ul className="mt-2 space-y-2">
               {me.alerts.map((a) => (
                 <li key={`${a.address}-${a.created_at}`} className="rounded-lg border border-graphite/60 bg-ink/40 p-2.5 text-xs">
-                  <span className={a.severity === 'critical' ? 'text-[#FF5A5A]' : 'text-signal'}>{a.severity.toUpperCase()}</span> · <Link href={`/token/${a.address}`} className="underline underline-offset-4">{a.symbol ? `$${a.symbol}` : short(a.address)}</Link> · {a.message}
+                  <span className={a.severity === 'critical' ? 'text-crimson' : 'text-signal'}>{a.severity.toUpperCase()}</span> · <Link href={`/token/${a.address}`} className="underline underline-offset-4">{a.symbol ? `$${a.symbol}` : short(a.address)}</Link> · {a.message}
                   <div className="text-muted">{new Date(a.created_at).toISOString().slice(0, 16).replace('T', ' ')} UTC</div>
                 </li>
               ))}

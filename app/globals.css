@@ -3,18 +3,18 @@
 @tailwind utilities;
 
 :root {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 html {
-  background: #050303;
-  color: #f4f1f1;
+  background: #f7f4f3;
+  color: #1b1516;
 }
 
 /* The body stays transparent so the fixed backdrop (z-index -1) shows through. */
 body {
   background: transparent;
-  color: #f4f1f1;
+  color: #1b1516;
 }
 
 body {
@@ -23,7 +23,7 @@ body {
 }
 
 ::selection {
-  background: rgba(214, 59, 59, 0.45);
+  background: rgba(196, 43, 43, 0.2);
 }
 
 /*
@@ -38,15 +38,15 @@ body {
   overflow: hidden;
   pointer-events: none;
   background:
-    radial-gradient(80% 55% at 50% -8%, rgba(162, 15, 16, 0.26), transparent 62%),
-    radial-gradient(70% 60% at 100% 100%, rgba(48, 44, 45, 0.35), transparent 60%),
-    linear-gradient(180deg, #0a0506 0%, #050303 40%, #050303 100%);
+    radial-gradient(80% 55% at 50% -8%, rgba(214, 59, 59, 0.12), transparent 62%),
+    radial-gradient(70% 60% at 100% 100%, rgba(162, 15, 16, 0.05), transparent 60%),
+    linear-gradient(180deg, #fff8f7 0%, #f7f4f3 40%, #f7f4f3 100%);
 }
 
 .backdrop-aurora {
   position: absolute;
   border-radius: 50%;
-  mix-blend-mode: screen;
+  mix-blend-mode: multiply;
   will-change: transform;
 }
 .backdrop-aurora-a {
@@ -54,7 +54,7 @@ body {
   height: max(70vw, 560px);
   left: -18vw;
   top: -38vw;
-  background: radial-gradient(closest-side, rgba(214, 59, 59, 0.24), rgba(162, 15, 16, 0.1) 42%, transparent 72%);
+  background: radial-gradient(closest-side, rgba(214, 59, 59, 0.12), rgba(162, 15, 16, 0.05) 42%, transparent 72%);
   animation: aurora-a 46s ease-in-out infinite alternate;
 }
 .backdrop-aurora-b {
@@ -62,7 +62,7 @@ body {
   height: max(60vw, 480px);
   right: -24vw;
   top: 8vh;
-  background: radial-gradient(closest-side, rgba(162, 15, 16, 0.22), rgba(120, 12, 14, 0.08) 45%, transparent 72%);
+  background: radial-gradient(closest-side, rgba(196, 43, 43, 0.1), rgba(162, 15, 16, 0.04) 45%, transparent 72%);
   animation: aurora-b 58s ease-in-out infinite alternate;
 }
 .backdrop-aurora-c {
@@ -70,7 +70,7 @@ body {
   height: max(55vw, 440px);
   left: 18vw;
   bottom: -32vw;
-  background: radial-gradient(closest-side, rgba(244, 241, 241, 0.05), rgba(214, 59, 59, 0.07) 40%, transparent 72%);
+  background: radial-gradient(closest-side, rgba(162, 15, 16, 0.05), rgba(214, 59, 59, 0.05) 40%, transparent 72%);
   animation: aurora-c 70s ease-in-out infinite alternate;
 }
 @keyframes aurora-a {
@@ -102,8 +102,8 @@ body {
   content: '';
   position: absolute;
   inset: -100% 0 0 0;
-  background-image: linear-gradient(rgba(214, 59, 59, 0.16) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(214, 59, 59, 0.16) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(196, 43, 43, 0.1) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(196, 43, 43, 0.1) 1px, transparent 1px);
   background-size: 56px 56px;
   transform-origin: 50% 100%;
   transform: rotateX(64deg) translateY(0);
@@ -117,7 +117,7 @@ body {
 .backdrop-net {
   position: absolute;
   inset: 0;
-  opacity: 0.85;
+  opacity: 0.6;
   -webkit-mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, black 55%, transparent 100%);
   mask-image: radial-gradient(ellipse 90% 80% at 50% 45%, black 55%, transparent 100%);
 }
@@ -130,7 +130,7 @@ body {
   top: -14vh;
   height: 12vh;
   opacity: 0;
-  background: linear-gradient(to bottom, transparent, rgba(214, 59, 59, 0.035) 70%, rgba(255, 130, 130, 0.11) 98.5%, transparent 100%);
+  background: linear-gradient(to bottom, transparent, rgba(196, 43, 43, 0.025) 70%, rgba(196, 43, 43, 0.08) 98.5%, transparent 100%);
   -webkit-mask-image: linear-gradient(90deg, transparent, black 18%, black 82%, transparent);
   mask-image: linear-gradient(90deg, transparent, black 18%, black 82%, transparent);
   animation: sweep-down 18s linear infinite;
@@ -147,21 +147,21 @@ body {
 .backdrop-grain {
   position: absolute;
   inset: 0;
-  opacity: 0.055;
-  mix-blend-mode: overlay;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.7 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.035;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.7 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   background-size: 180px 180px;
 }
 
 .backdrop-vignette {
   position: absolute;
   inset: 0;
-  background: radial-gradient(ellipse 85% 75% at 50% 42%, transparent 52%, rgba(5, 3, 3, 0.72) 100%);
+  background: radial-gradient(ellipse 85% 75% at 50% 42%, transparent 55%, rgba(247, 244, 243, 0.7) 100%);
 }
 
 @media (max-width: 640px) {
   .backdrop-floor { height: 46vh; }
-  .backdrop-net { opacity: 0.7; }
+  .backdrop-net { opacity: 0.5; }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -174,18 +174,18 @@ body {
 }
 
 .grid-bg {
-  background-image: linear-gradient(rgba(244, 241, 241, 0.035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(244, 241, 241, 0.035) 1px, transparent 1px);
+  background-image: linear-gradient(rgba(27, 21, 22, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(27, 21, 22, 0.04) 1px, transparent 1px);
   background-size: 44px 44px;
   mask-image: radial-gradient(ellipse at 50% 0%, black 30%, transparent 75%);
 }
 
 .glow-top {
-  background: radial-gradient(60% 50% at 50% 0%, rgba(162, 15, 16, 0.35), transparent 70%);
+  background: radial-gradient(60% 50% at 50% 0%, rgba(214, 59, 59, 0.12), transparent 70%);
 }
 
 .card {
-  @apply rounded-2xl border border-graphite/70 bg-coal/70 backdrop-blur-sm;
+  @apply rounded-2xl border border-graphite/70 bg-coal/80 shadow-card backdrop-blur-sm;
 }
 
 /*
@@ -221,9 +221,9 @@ body {
     from var(--hawk-angle),
     transparent 0deg,
     transparent 286deg,
-    rgba(214, 59, 59, 0.08) 300deg,
-    rgba(214, 59, 59, 0.5) 334deg,
-    rgba(255, 150, 150, 0.95) 352deg,
+    rgba(196, 43, 43, 0.06) 300deg,
+    rgba(196, 43, 43, 0.35) 334deg,
+    rgba(196, 43, 43, 0.75) 352deg,
     transparent 360deg
   );
   -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
@@ -268,11 +268,11 @@ body {
 }
 
 .btn-primary {
-  @apply btn bg-signal text-white shadow-glow hover:bg-[#e04848] active:translate-y-px;
+  @apply btn bg-signal text-white shadow-glow hover:bg-[#A92222] active:translate-y-px;
 }
 
 .btn-ghost {
-  @apply btn border border-graphite bg-coal text-bone hover:border-signal/60 hover:text-white;
+  @apply btn border border-graphite bg-coal text-bone hover:border-signal/60 hover:text-signal;
 }
 
 .scan-line {
@@ -283,7 +283,7 @@ body {
   content: '';
   position: absolute;
   inset: 0;
-  background: linear-gradient(90deg, transparent, rgba(214, 59, 59, 0.25), transparent);
+  background: linear-gradient(90deg, transparent, rgba(196, 43, 43, 0.18), transparent);
   animation: sweep 1.6s ease-in-out infinite;
 }
 
@@ -292,8 +292,40 @@ body {
   @apply !h-10 !rounded-xl !bg-signal !px-4 !font-sans !text-sm !font-semibold;
 }
 .wallet-adapter-button:not([disabled]):hover {
-  @apply !bg-[#e04848];
+  @apply !bg-[#A92222];
 }
 .wallet-adapter-modal-wrapper {
   @apply !rounded-2xl !border !border-graphite !bg-coal;
+  box-shadow: 0 24px 60px -24px rgba(27, 21, 22, 0.35) !important;
+}
+/* The adapter's own sheet is dark; these keep its text and icons readable on the light modal. */
+.wallet-adapter-modal-title,
+.wallet-adapter-modal-list-more {
+  color: #1b1516 !important;
+}
+.wallet-adapter-modal-list-more svg {
+  fill: #1b1516 !important;
+}
+.wallet-adapter-modal-button-close {
+  background: #f2eeed !important;
+}
+.wallet-adapter-modal-button-close svg {
+  fill: #675d5f !important;
+}
+.wallet-adapter-modal-button-close:hover svg {
+  fill: #1b1516 !important;
+}
+.wallet-adapter-modal-overlay {
+  background: rgba(27, 21, 22, 0.35) !important;
+}
+.wallet-adapter-dropdown-list {
+  background: #ffffff !important;
+  border: 1px solid #dad3d3;
+  box-shadow: 0 12px 32px -12px rgba(27, 21, 22, 0.3) !important;
+}
+.wallet-adapter-dropdown-list-item {
+  color: #1b1516 !important;
+}
+.wallet-adapter-dropdown-list-item:not([disabled]):hover {
+  background-color: #f7f4f3 !important;
 }

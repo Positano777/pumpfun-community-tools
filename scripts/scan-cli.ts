@@ -2,33 +2,21 @@
  * Run the RugHawk engine against mainnet from a terminal.
  *   npm run scan -- token <mint>
  *   npm run scan -- wallet <address>
- * Reads QUICKNODE_RPC_URL and ANKR_RPC_URL (optional HELIUS_RPC_URL) from .dev.vars.
+ * Reads the RPC endpoints from .dev.vars (see .dev.vars.example).
  */
-import { readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { SolanaRpc, rpcUpstreams } from '../lib/rpc';
 import { MemoryCache, type ScanContext } from '../lib/scan/context';
 import { scanToken } from '../lib/scan/token';
 import { scanWallet } from '../lib/scan/wallet';
-
-function loadVars(): Record<string, string> {
-  try {
-    return Object.fromEntries(
-      readFileSync('.dev.vars', 'utf8')
-        .split('\n')
-        .filter((l) => l.includes('='))
-        .map((l) => [l.slice(0, l.indexOf('=')).trim(), l.slice(l.indexOf('=') + 1).trim()]),
-    );
-  } catch {
-    return {};
-  }
-}
+import { loadDevVars } from './dev-vars';
 
 const [kind, address, out] = process.argv.slice(2);
 if (!kind || !address) {
   console.error('usage: scan-cli <token|wallet> <address> [out.json]');
   process.exit(1);
 }
-const env = { ...process.env, ...loadVars() };
+const env = { ...process.env, ...loadDevVars() };
 const ctx: ScanContext = {
   rpc: new SolanaRpc(rpcUpstreams(env)),
   cache: new MemoryCache(),

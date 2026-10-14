@@ -203,13 +203,15 @@ body {
 }
 
 .card,
-.edge-light {
+.edge-light,
+.wallet-adapter-modal-wrapper {
   position: relative;
   isolation: isolate;
 }
 
 .card::before,
-.edge-light::before {
+.edge-light::before,
+.wallet-adapter-modal-wrapper::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -253,7 +255,8 @@ body {
 
 @media (prefers-reduced-motion: reduce) {
   .card::before,
-  .edge-light::before {
+  .edge-light::before,
+  .wallet-adapter-modal-wrapper::before {
     animation: none;
     opacity: 0.5;
   }
@@ -287,45 +290,311 @@ body {
   animation: sweep 1.6s ease-in-out infinite;
 }
 
-/* Wallet adapter button in the house style */
+/*
+ * Wallet adapter in the house style. The adapter's stock stylesheet is not
+ * imported (components/Providers.tsx): it is a dark theme that every rule
+ * here would have to override, and it loads a third-party web font. These
+ * rules cover all the markup @solana/wallet-adapter-react-ui 0.9 renders:
+ * the connect button, its account menu and the wallet picker modal.
+ */
 .wallet-adapter-button {
-  @apply !h-10 !rounded-xl !bg-signal !px-4 !font-sans !text-sm !font-semibold;
+  display: flex;
+  align-items: center;
+  border: 0;
+  cursor: pointer;
+  white-space: nowrap;
 }
-.wallet-adapter-button:not([disabled]):hover {
-  @apply !bg-[#A92222];
+.wallet-adapter-button[disabled] {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
-.wallet-adapter-modal-wrapper {
-  @apply !rounded-2xl !border !border-graphite !bg-coal;
-  box-shadow: 0 24px 60px -24px rgba(27, 21, 22, 0.35) !important;
+.wallet-adapter-button-start-icon,
+.wallet-adapter-button-end-icon {
+  display: flex;
+  flex-shrink: 0;
+  width: 1.25rem;
+  height: 1.25rem;
 }
-/* The adapter's own sheet is dark; these keep its text and icons readable on the light modal. */
-.wallet-adapter-modal-title,
-.wallet-adapter-modal-list-more {
-  color: #1b1516 !important;
+.wallet-adapter-button-start-icon {
+  margin-right: 0.5rem;
 }
-.wallet-adapter-modal-list-more svg {
-  fill: #1b1516 !important;
+.wallet-adapter-button-end-icon {
+  margin-left: 0.5rem;
 }
-.wallet-adapter-modal-button-close {
-  background: #f2eeed !important;
+.wallet-adapter-button-start-icon img,
+.wallet-adapter-button-end-icon img {
+  width: 100%;
+  height: 100%;
+  border-radius: 0.375rem;
 }
-.wallet-adapter-modal-button-close svg {
-  fill: #675d5f !important;
+
+/* Connect button (header, Shield) and the menu it opens once connected */
+.wallet-adapter-button-trigger {
+  @apply h-10 rounded-xl bg-signal px-4 text-sm font-semibold text-white transition-colors;
 }
-.wallet-adapter-modal-button-close:hover svg {
-  fill: #1b1516 !important;
+.wallet-adapter-button-trigger:not([disabled]):hover {
+  @apply bg-[#A92222];
 }
-.wallet-adapter-modal-overlay {
-  background: rgba(27, 21, 22, 0.35) !important;
+.wallet-adapter-dropdown {
+  position: relative;
+  display: inline-block;
 }
 .wallet-adapter-dropdown-list {
-  background: #ffffff !important;
+  position: absolute;
+  top: 100%;
+  right: 0;
+  z-index: 99;
+  display: grid;
+  gap: 0.125rem;
+  min-width: 100%;
+  margin: 0;
+  padding: 0.375rem;
+  list-style: none;
   border: 1px solid #dad3d3;
-  box-shadow: 0 12px 32px -12px rgba(27, 21, 22, 0.3) !important;
+  border-radius: 0.75rem;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(27, 21, 22, 0.04), 0 16px 36px -14px rgba(27, 21, 22, 0.28);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 200ms ease, transform 200ms ease, visibility 200ms;
+}
+.wallet-adapter-dropdown-list-active {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0.5rem);
 }
 .wallet-adapter-dropdown-list-item {
-  color: #1b1516 !important;
+  display: flex;
+  align-items: center;
+  height: 2.25rem;
+  padding: 0 0.75rem;
+  border-radius: 0.5rem;
+  color: #1b1516;
+  font-size: 0.875rem;
+  font-weight: 500;
+  white-space: nowrap;
+  cursor: pointer;
 }
-.wallet-adapter-dropdown-list-item:not([disabled]):hover {
-  background-color: #f7f4f3 !important;
+.wallet-adapter-dropdown-list-item:hover {
+  background: #f7f4f3;
+}
+
+/*
+ * Wallet picker modal. The adapter adds wallet-adapter-modal-fade-in a tick
+ * after mount and removes it 150ms before unmount, so both transitions here
+ * stay at 150ms. The scrim and the sheet fade separately (not the root) so the
+ * scrim's backdrop blur stays live during the fade.
+ */
+.wallet-adapter-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 1040;
+  overflow-y: auto;
+}
+.wallet-adapter-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(27, 21, 22, 0.3);
+  backdrop-filter: blur(6px);
+}
+.wallet-adapter-modal-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 6rem);
+  min-height: calc(100dvh - 6rem);
+  margin: 3rem;
+}
+.wallet-adapter-modal-wrapper {
+  position: relative;
+  z-index: 1050;
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  max-width: 26rem;
+  padding: 1.5rem;
+  border: 1px solid #dad3d3;
+  border-radius: 1rem;
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(27, 21, 22, 0.05), 0 28px 64px -24px rgba(27, 21, 22, 0.45);
+  color: #1b1516;
+}
+.wallet-adapter-modal-overlay,
+.wallet-adapter-modal-wrapper {
+  opacity: 0;
+  transition: opacity 150ms ease-out, transform 150ms ease-out;
+}
+.wallet-adapter-modal-wrapper {
+  transform: translateY(0.5rem) scale(0.98);
+}
+.wallet-adapter-modal-fade-in .wallet-adapter-modal-overlay,
+.wallet-adapter-modal-fade-in .wallet-adapter-modal-wrapper {
+  opacity: 1;
+  transform: none;
+}
+
+.wallet-adapter-modal-button-close {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  border: 1px solid #dad3d3;
+  border-radius: 0.625rem;
+  background: #ffffff;
+  color: #675d5f;
+  cursor: pointer;
+  transition: color 150ms, border-color 150ms;
+}
+.wallet-adapter-modal-button-close:hover {
+  border-color: rgba(196, 43, 43, 0.6);
+  color: #c42b2b;
+}
+.wallet-adapter-modal-button-close svg {
+  fill: currentColor;
+  transform: scale(0.8);
+}
+
+.wallet-adapter-modal-title {
+  margin: 0;
+  padding-right: 2.75rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.5rem;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+/* Wallet rows. Collapsed rows sit in a div inside the list, so spacing is per row, not a grid gap. */
+.wallet-adapter-modal-list {
+  margin: 1.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.wallet-adapter-modal-list li {
+  padding-top: 0.5rem;
+}
+.wallet-adapter-modal-list > li:first-child {
+  padding-top: 0;
+}
+.wallet-adapter-collapse {
+  width: 100%;
+}
+.wallet-adapter-modal-list .wallet-adapter-button {
+  width: 100%;
+  height: 3.5rem;
+  padding: 0 1rem 0 0.75rem;
+  border: 1px solid rgba(218, 211, 211, 0.8);
+  border-radius: 0.75rem;
+  background: rgba(247, 244, 243, 0.6);
+  color: #1b1516;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  transition: border-color 150ms, background-color 150ms, box-shadow 150ms;
+}
+.wallet-adapter-modal-list .wallet-adapter-button:not([disabled]):hover {
+  border-color: rgba(196, 43, 43, 0.45);
+  background: #ffffff;
+  box-shadow: 0 1px 2px rgba(27, 21, 22, 0.04), 0 10px 24px -14px rgba(162, 15, 16, 0.35);
+}
+.wallet-adapter-modal-list .wallet-adapter-button-start-icon {
+  width: 2rem;
+  height: 2rem;
+  margin-right: 0.75rem;
+}
+.wallet-adapter-modal-list .wallet-adapter-button-start-icon img {
+  border-radius: 0.5rem;
+}
+/* The "Detected" label on installed wallets */
+.wallet-adapter-modal-list .wallet-adapter-button span {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.375rem;
+  margin-left: auto;
+  padding-left: 0.75rem;
+  color: #675d5f;
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+.wallet-adapter-modal-list .wallet-adapter-button span::before {
+  content: '';
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: #177a4c;
+  box-shadow: 0 0 0 3px rgba(23, 122, 76, 0.14);
+}
+
+.wallet-adapter-modal-list-more {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  gap: 0.5rem;
+  margin: 0.75rem 0 -0.5rem;
+  padding: 0.5rem 0.75rem;
+  border: 0;
+  border-radius: 0.5rem;
+  background: transparent;
+  color: #675d5f;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 150ms, background-color 150ms;
+}
+.wallet-adapter-modal-list-more:hover {
+  background: #f7f4f3;
+  color: #1b1516;
+}
+.wallet-adapter-modal-list-more svg {
+  fill: currentColor;
+  transition: transform 150ms ease;
+}
+.wallet-adapter-modal-list-more-icon-rotate {
+  transform: rotate(180deg);
+}
+
+/* No wallet installed: a centered title over the wallet illustration, recolored from Solana purple to the house reds. */
+.wallet-adapter-modal-wrapper:has(.wallet-adapter-modal-middle) .wallet-adapter-modal-title {
+  padding-left: 2.75rem;
+  text-align: center;
+}
+.wallet-adapter-modal-middle {
+  display: flex;
+  justify-content: center;
+  padding: 1.5rem 0 0.25rem;
+}
+.wallet-adapter-modal-middle svg {
+  width: 4.5rem;
+  height: auto;
+}
+.wallet-adapter-modal-middle stop {
+  stop-color: #d63b3b;
+}
+.wallet-adapter-modal-middle stop:nth-child(n + 4) {
+  stop-color: #a20f10;
+}
+
+@media (max-width: 480px) {
+  .wallet-adapter-modal-container {
+    min-height: calc(100vh - 2rem);
+    min-height: calc(100dvh - 2rem);
+    margin: 1rem;
+  }
+  .wallet-adapter-modal-wrapper {
+    padding: 1.25rem;
+  }
+  .wallet-adapter-modal-button-close {
+    top: 1rem;
+    right: 1.25rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .wallet-adapter-modal-wrapper {
+    transform: none;
+  }
 }

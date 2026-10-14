@@ -173,7 +173,7 @@ export function ShieldView() {
             {report.delegated.map((a) => (
               <li key={a.address} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-graphite/60 bg-ink/40 p-3 text-sm">
                 <label className="flex items-center gap-3">
-                  <input type="checkbox" checked={selected.has(a.address)} onChange={(e) => setSelected((s) => { const n = new Set(s); if (e.target.checked) n.add(a.address); else n.delete(a.address); return n; })} className="accent-[#C42B2B]" />
+                  <input type="checkbox" checked={selected.has(a.address)} onChange={(e) => setSelected((s) => { const n = new Set(s); if (e.target.checked) n.add(a.address); else n.delete(a.address); return n; })} className="accent-[#D63B3B]" />
                   <span>Mint <Address value={a.mint} href={`/token/${a.mint}`} /></span>
                 </label>
                 <span className="text-xs text-muted">delegate <Address value={a.delegate!} href={`/wallet/${a.delegate}`} /> · {a.delegatedUi.toLocaleString('en-US')} allowed of {a.uiAmount.toLocaleString('en-US')}</span>

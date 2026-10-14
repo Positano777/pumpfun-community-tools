@@ -2,7 +2,7 @@ import type { LaunchForensics } from '@/lib/scan/types';
 import { launchTimeline, sinceLaunch, type TimelineTone } from '@/lib/scan/timeline';
 
 const DOT: Record<TimelineTone, string> = {
-  signal: 'border-signal bg-signal/30 shadow-[0_0_10px_rgba(196,43,43,0.45)]',
+  signal: 'border-signal bg-signal/30 shadow-[0_0_10px_rgba(226,74,74,0.6)]',
   caution: 'border-caution bg-caution/30',
   safe: 'border-safe bg-safe/30',
   muted: 'border-graphite bg-ink',

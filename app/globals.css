@@ -29,20 +29,21 @@ body {
 
 /*
  * Backdrop: deep space behind every page (components/Backdrop.tsx), in pure
- * CSS. The root paints the still sky once: a base gradient, the nebulae, two
- * tiles of faint stars and a grain that keeps the gradients from banding.
- * Above it two star layers drift left at different speeds for depth, a dozen
- * stars twinkle and two meteors cross now and then. Every animation is a
- * transform or an opacity, so it runs on the compositor with no main-thread
- * work. The slow ones advance in steps of about a tenth of a second: at these
- * speeds that still reads as smooth motion, and the browser redraws the
- * moving stars ten times a second instead of on every frame. The --stars-*
+ * CSS. The root paints what stays put once: a base gradient, the nebulae and
+ * a grain that keeps the gradients from banding. Every star drifts left, so
+ * the whole sky moves together: the dust and the galactic band slowest, then
+ * the mid and near layers, which gives the field its depth. The twinkling
+ * stars ride on the near layer, and two meteors cross now and then. Every
+ * animation is a transform or an opacity, so it runs on the compositor with no
+ * main-thread work, and the drifting and the twinkling step on a shared clock
+ * of thirty updates a second: at these speeds that still reads as smooth
+ * motion, and the sky is never redrawn more often than that. The --stars-*
  * tiles are SVGs printed by scripts/star-tiles.ts.
  */
 .backdrop {
-  --stars-far-a: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='433' height='433' fill='none' stroke-linecap='round'%3E%3Cpath stroke='%23fff' stroke-opacity='0.58' stroke-width='1.2' d='M229 263h.01M57 258h.01M421 129h.01M151 239h.01M40 278h.01M270 56h.01M236 223h.01M261 248h.01M282 33h.01M213 271h.01M137 41h.01M302 272h.01M200 428h.01M235 113h.01M23 310h.01M55 43h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.75' stroke-width='1.4' d='M233 36h.01M149 399h.01M129 193h.01M319 351h.01M62 377h.01M427 169h.01M131 206h.01M59 387h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.58' stroke-width='1.2' d='M195 208h.01M4 188h.01M164 327h.01M295 45h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.42' stroke-width='1' d='M290 294h.01M120 172h.01M269 110h.01M228 118h.01M274 424h.01M328 131h.01M363 71h.01M396 254h.01M177 55h.01M38 430h.01M74 258h.01M231 24h.01M147 255h.01M321 95h.01M330 99h.01M270 6h.01M228 332h.01M44 83h.01M404 238h.01M29 192h.01M104 273h.01M320 71h.01M338 260h.01M307 38h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.42' stroke-width='1' d='M364 348h.01M153 23h.01M404 368h.01M213 72h.01M118 181h.01M352 85h.01M44 381h.01M98 139h.01M407 110h.01M141 309h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.75' stroke-width='1.4' d='M63 367h.01M373 225h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.42' stroke-width='1' d='M13 35h.01M223 6h.01M80 352h.01M58 73h.01M403 35h.01M162 58h.01M327 186h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.58' stroke-width='1.2' d='M269 381h.01M360 396h.01M247 338h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.42' stroke-width='1' d='M282 281h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.58' stroke-width='1.2' d='M60 61h.01M138 243h.01M250 326h.01'/%3E%3C/svg%3E");
-  --stars-far-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='577' height='577' fill='none' stroke-linecap='round'%3E%3Cpath stroke='%23fff' stroke-opacity='0.38' stroke-width='1' d='M41 364h.01M567 483h.01M522 119h.01M118 373h.01M421 318h.01M320 572h.01M559 414h.01M531 92h.01M138 308h.01M285 347h.01M67 362h.01M210 147h.01M309 109h.01M494 155h.01M538 226h.01M502 355h.01M259 189h.01M7 550h.01M31 13h.01M449 541h.01M450 351h.01M285 286h.01M198 299h.01M387 166h.01M125 365h.01M178 236h.01M308 331h.01M503 326h.01M181 22h.01M248 430h.01M400 192h.01M246 223h.01M249 161h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.38' stroke-width='1' d='M125 295h.01M143 82h.01M152 374h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.52' stroke-width='1.2' d='M7 408h.01M126 180h.01M5 336h.01M209 170h.01M539 400h.01M127 240h.01M381 568h.01M398 549h.01M199 275h.01M173 548h.01M358 543h.01M546 241h.01M44 541h.01M458 186h.01M207 131h.01M365 491h.01M348 161h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.52' stroke-width='1.2' d='M34 261h.01M15 97h.01M392 562h.01M110 38h.01M339 404h.01M342 130h.01M526 143h.01M442 74h.01M97 452h.01M87 297h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.7' stroke-width='1.5' d='M124 487h.01M167 8h.01M134 332h.01M235 35h.01M453 420h.01M186 161h.01M549 70h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.38' stroke-width='1' d='M451 92h.01M293 544h.01M475 172h.01M306 355h.01M11 319h.01M523 382h.01M357 35h.01M571 327h.01M314 446h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.7' stroke-width='1.5' d='M525 372h.01M547 466h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.52' stroke-width='1.2' d='M94 392h.01M148 337h.01M189 172h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.38' stroke-width='1' d='M478 422h.01M156 9h.01M343 14h.01M512 442h.01M408 216h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.52' stroke-width='1.2' d='M284 66h.01'/%3E%3C/svg%3E");
-  --stars-band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='311' height='311' fill='none' stroke-linecap='round'%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.55' stroke-width='1.1' d='M51 188h.01M35 185h.01M95 266h.01M268 90h.01M246 43h.01M84 168h.01M194 32h.01M14 43h.01M272 222h.01M87 209h.01M211 239h.01M20 290h.01M156 108h.01M9 152h.01M272 26h.01M25 306h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.4' stroke-width='0.9' d='M51 62h.01M134 292h.01M4 91h.01M72 68h.01M173 52h.01M225 199h.01M269 248h.01M44 256h.01M261 196h.01M237 150h.01M242 197h.01M145 145h.01M12 84h.01M225 10h.01M108 285h.01M220 137h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.4' stroke-width='0.9' d='M169 257h.01M276 15h.01M79 134h.01M79 148h.01M283 257h.01M224 267h.01M130 125h.01M89 255h.01M124 35h.01M136 256h.01M198 71h.01M259 276h.01M17 158h.01M116 46h.01M96 298h.01M34 46h.01M165 146h.01M231 229h.01M42 203h.01M170 231h.01M248 115h.01M287 163h.01M87 155h.01M174 269h.01M73 306h.01M15 10h.01M260 236h.01M97 141h.01M40 127h.01M57 219h.01M227 145h.01M92 247h.01M49 148h.01M114 161h.01M17 91h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.7' stroke-width='1.3' d='M143 208h.01M94 188h.01M167 108h.01M64 276h.01M209 155h.01M109 299h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.55' stroke-width='1.1' d='M148 35h.01M220 238h.01M140 156h.01M46 194h.01M84 307h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.55' stroke-width='1.1' d='M69 176h.01M145 244h.01M121 303h.01M242 298h.01M28 7h.01M5 166h.01M219 275h.01M211 128h.01M75 29h.01M288 178h.01M251 110h.01M103 243h.01M237 282h.01M250 62h.01M76 57h.01M159 252h.01M285 279h.01M279 247h.01M71 186h.01M114 93h.01M309 111h.01M266 16h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.4' stroke-width='0.9' d='M55 198h.01M118 258h.01M188 176h.01M277 259h.01M304 207h.01M276 157h.01M86 35h.01M207 57h.01M37 194h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.7' stroke-width='1.3' d='M266 288h.01M236 236h.01M101 212h.01M172 214h.01M171 101h.01M114 240h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.4' stroke-width='0.9' d='M94 127h.01M130 146h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.7' stroke-width='1.3' d='M240 274h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.7' stroke-width='1.3' d='M292 132h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.55' stroke-width='1.1' d='M81 52h.01'/%3E%3C/svg%3E");
+  --stars-far-a: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='480' height='600' fill='none' stroke-linecap='round'%3E%3Cpath stroke='%23fff' stroke-opacity='0.58' stroke-width='1.2' d='M254 364h.01M63 358h.01M467 179h.01M167 332h.01M44 386h.01M299 77h.01M261 308h.01M289 344h.01M313 45h.01M236 376h.01M152 57h.01M335 377h.01M221 594h.01M261 156h.01M25 430h.01M60 59h.01M92 401h.01M227 5h.01M189 421h.01M33 380h.01M410 528h.01M202 534h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.75' stroke-width='1.4' d='M258 50h.01M165 554h.01M143 268h.01M354 486h.01M68 524h.01M473 234h.01M146 285h.01M66 537h.01M201 542h.01M300 100h.01M436 148h.01M192 333h.01M93 262h.01M345 428h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.58' stroke-width='1.2' d='M216 288h.01M4 260h.01M182 454h.01M327 62h.01M189 173h.01M370 238h.01M85 146h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.42' stroke-width='1' d='M321 408h.01M133 238h.01M299 152h.01M252 163h.01M304 589h.01M364 181h.01M403 97h.01M439 352h.01M196 76h.01M42 597h.01M82 357h.01M256 32h.01M163 353h.01M356 131h.01M366 137h.01M300 7h.01M253 460h.01M49 114h.01M448 330h.01M32 265h.01M115 379h.01M355 97h.01M375 360h.01M340 53h.01M49 342h.01M32 37h.01M292 6h.01M106 509h.01M178 9h.01M182 301h.01M76 21h.01M203 578h.01M460 248h.01M8 528h.01M48 19h.01M144 366h.01M79 395h.01M113 9h.01M156 311h.01M2 91h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.42' stroke-width='1' d='M404 482h.01M170 31h.01M448 510h.01M236 99h.01M131 251h.01M391 117h.01M48 529h.01M109 193h.01M451 152h.01M156 429h.01M262 265h.01M33 501h.01M150 372h.01M251 375h.01M324 423h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.75' stroke-width='1.4' d='M70 508h.01M414 312h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.42' stroke-width='1' d='M14 48h.01M247 7h.01M88 489h.01M64 100h.01M447 48h.01M179 80h.01M362 258h.01M35 517h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.58' stroke-width='1.2' d='M298 529h.01M399 550h.01M273 469h.01M102 557h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.42' stroke-width='1' d='M312 390h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.58' stroke-width='1.2' d='M66 84h.01M153 337h.01M277 453h.01M466 331h.01M380 424h.01M108 483h.01M151 96h.01'/%3E%3C/svg%3E");
+  --stars-far-b: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='320' height='440' fill='none' stroke-linecap='round'%3E%3Cpath stroke='%23fff' stroke-opacity='0.38' stroke-width='1' d='M24 278h.01M313 368h.01M289 91h.01M66 284h.01M233 242h.01M178 436h.01M309 315h.01M294 71h.01M77 235h.01M158 264h.01M38 276h.01M117 113h.01M171 83h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.38' stroke-width='1' d='M70 225h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.52' stroke-width='1.2' d='M5 311h.01M71 138h.01M4 256h.01M116 130h.01M298 305h.01M71 183h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.52' stroke-width='1.2' d='M19 199h.01M9 75h.01M217 428h.01M62 29h.01M188 308h.01M190 99h.01M291 109h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.7' stroke-width='1.5' d='M69 371h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.38' stroke-width='1' d='M249 71h.01M163 414h.01M263 131h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.7' stroke-width='1.5' d='M291 284h.01M303 355h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.52' stroke-width='1.2' d='M53 298h.01M83 257h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.38' stroke-width='1' d='M264 321h.01M87 7h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.52' stroke-width='1.2' d='M157 51h.01'/%3E%3C/svg%3E");
+  --stars-band: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='360' fill='none' stroke-linecap='round'%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.55' stroke-width='1.1' d='M59 217h.01M40 214h.01M110 308h.01M311 104h.01M285 50h.01M97 195h.01M225 37h.01M255 248h.01M273 345h.01M195 222h.01M266 203h.01M210 9h.01M318 357h.01M28 167h.01M47 309h.01M176 87h.01M127 41h.01M89 317h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.4' stroke-width='0.9' d='M59 72h.01M155 338h.01M4 105h.01M84 78h.01M200 60h.01M217 11h.01M81 239h.01M120 62h.01M295 268h.01M120 261h.01M7 112h.01M14 97h.01M260 11h.01M125 330h.01M254 158h.01M6 71h.01M260 107h.01M43 340h.01M246 84h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.4' stroke-width='0.9' d='M196 297h.01M320 17h.01M92 155h.01M91 171h.01M328 298h.01M259 310h.01M150 145h.01M103 295h.01M143 41h.01M157 296h.01M229 82h.01M300 319h.01M183 145h.01M29 218h.01M354 337h.01M179 327h.01M139 22h.01M145 34h.01M144 239h.01M40 189h.01M157 49h.01M119 212h.01M333 263h.01M21 290h.01M181 252h.01M267 185h.01M329 286h.01M262 125h.01M346 24h.01M59 205h.01M118 70h.01M177 62h.01M292 290h.01M117 230h.01M132 186h.01M20 105h.01M277 5h.01M210 92h.01M203 326h.01M46 179h.01M226 148h.01M3 126h.01M240 122h.01M68 100h.01M157 3h.01M239 345h.01M131 256h.01M159 165h.01M343 143h.01M119 320h.01M213 137h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.7' stroke-width='1.3' d='M166 240h.01M165 245h.01M37 317h.01M253 43h.01M306 320h.01M339 319h.01M90 122h.01M190 80h.01M99 252h.01M174 316h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.55' stroke-width='1.1' d='M172 40h.01M322 195h.01M280 229h.01M197 55h.01M239 20h.01M158 60h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.55' stroke-width='1.1' d='M79 204h.01M168 282h.01M141 351h.01M280 345h.01M33 7h.01M257 237h.01M323 209h.01M325 14h.01M290 25h.01M268 162h.01M270 42h.01M112 117h.01M334 156h.01M79 280h.01M230 203h.01M194 105h.01M102 5h.01M299 272h.01M331 323h.01M323 287h.01M81 215h.01M131 108h.01M358 128h.01M309 18h.01M261 135h.01M55 101h.01M159 278h.01M188 13h.01M279 244h.01M121 28h.01M266 149h.01M111 258h.01M293 51h.01M168 218h.01M224 312h.01M191 164h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.4' stroke-width='0.9' d='M63 229h.01M136 299h.01M218 204h.01M50 258h.01M158 122h.01M306 73h.01M275 306h.01M282 2h.01M159 309h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.7' stroke-width='1.3' d='M308 334h.01M170 148h.01M84 331h.01M288 140h.01M132 277h.01M267 309h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.7' stroke-width='1.3' d='M60 178h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.4' stroke-width='0.9' d='M33 82h.01M218 251h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.7' stroke-width='1.3' d='M338 153h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.55' stroke-width='1.1' d='M94 60h.01'/%3E%3C/svg%3E");
   --stars-mid: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='640' height='960' fill='none' stroke-linecap='round'%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.75' stroke-width='1.7' d='M636 27h.01M318 575h.01M50 268h.01M18 497h.01M505 360h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.6' stroke-width='1.4' d='M376 171h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.6' stroke-width='1.4' d='M476 887h.01M335 126h.01M532 765h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.9' stroke-width='2' d='M146 576h.01M194 458h.01M594 77h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.6' stroke-width='1.4' d='M304 151h.01M481 301h.01M7 886h.01M9 111h.01M544 382h.01M248 349h.01M106 931h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.75' stroke-width='1.7' d='M370 930h.01M203 819h.01M475 472h.01M629 592h.01M315 112h.01M527 83h.01M429 519h.01M296 210h.01M593 835h.01M349 325h.01M140 271h.01M458 187h.01M606 718h.01M338 409h.01M243 394h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.9' stroke-width='2' d='M83 214h.01M577 50h.01M15 304h.01M460 688h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.6' stroke-width='1.4' d='M427 23h.01M569 489h.01M54 705h.01M543 346h.01M27 258h.01M274 123h.01M93 133h.01M135 511h.01M157 290h.01M67 419h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.9' stroke-width='2' d='M511 395h.01M144 953h.01M379 259h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.9' stroke-width='2' d='M336 888h.01'/%3E%3C/svg%3E");
   --stars-near: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='960' height='1080' fill='none' stroke-linecap='round'%3E%3Cpath stroke='%23fff' stroke-opacity='0.07' stroke-width='7' d='M784 72h.01M511 85h.01M910 697h.01M794 1053h.01M476 1016h.01M219 731h.01M74 688h.01M777 322h.01M108 1023h.01M106 241h.01M70 875h.01M869 916h.01M617 866h.01M859 480h.01M201 503h.01M284 233h.01M672 211h.01M394 436h.01M952 531h.01M949 941h.01M471 787h.01M293 398h.01'/%3E%3Cpath stroke='%23ffc2c2' stroke-opacity='0.8' stroke-width='2' d='M784 72h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.8' stroke-width='2' d='M511 85h.01M777 322h.01M201 503h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.9' stroke-width='2.4' d='M910 697h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.9' stroke-width='2.4' d='M794 1053h.01M219 731h.01M394 436h.01M952 531h.01M949 941h.01M471 787h.01'/%3E%3Cpath stroke='%23d6e2ff' stroke-opacity='0.9' stroke-width='2.4' d='M476 1016h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='0.8' stroke-width='2' d='M74 688h.01M106 241h.01M617 866h.01M284 233h.01M672 211h.01M293 398h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='1' stroke-width='2.9' d='M108 1023h.01M869 916h.01'/%3E%3Cpath stroke='%23fff' stroke-opacity='1' stroke-width='2.9' d='M70 875h.01'/%3E%3Cpath stroke='%23ffe9d2' stroke-opacity='0.8' stroke-width='2' d='M859 480h.01'/%3E%3C/svg%3E");
   position: fixed;
@@ -54,8 +55,6 @@ body {
   background-color: #04050a;
   background-image:
     url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 1 0 0 0 0 1 0 0 0 0 1 0 0 0 0.12 -0.04'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E"),
-    var(--stars-far-a),
-    var(--stars-far-b),
     radial-gradient(ellipse 40% 28% at 15% 5%, rgba(186, 30, 44, 0.2), transparent 70%),
     radial-gradient(ellipse 26% 19% at 29% 13%, rgba(150, 20, 40, 0.13), transparent 70%),
     radial-gradient(ellipse 34% 15% at 38% 0%, rgba(170, 30, 70, 0.12), transparent 72%),
@@ -65,56 +64,69 @@ body {
     radial-gradient(ellipse 32% 24% at 72% 98%, rgba(76, 42, 136, 0.13), transparent 72%),
     radial-gradient(ellipse 40% 30% at 0% 96%, rgba(30, 44, 104, 0.14), transparent 72%),
     radial-gradient(130% 95% at 50% 0%, #0b0d17 0%, #06070c 48%, #020306 100%);
-  background-size: 180px 180px, 433px 433px, 577px 577px, auto, auto, auto, auto, auto, auto, auto, auto, auto;
-}
-
-/* A faint galactic band across the sky: denser dust and a little haze, masked to a diagonal strip. */
-.backdrop::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background:
-    var(--stars-band) 0 0 / 311px 311px,
-    linear-gradient(155deg, transparent 40%, rgba(150, 160, 215, 0.05) 49%, rgba(205, 160, 185, 0.045) 53%, transparent 62%);
-  -webkit-mask-image: linear-gradient(155deg, transparent 32%, #000 46%, #000 56%, transparent 69%);
-  mask-image: linear-gradient(155deg, transparent 32%, #000 46%, #000 56%, transparent 69%);
+  background-size: 180px 180px, auto, auto, auto, auto, auto, auto, auto, auto, auto;
 }
 
 /*
- * Drifting stars: each layer travels one tile to the left per loop, so the
- * loop is seamless. The wrapper dims them behind the central reading column,
- * so no bright star sits next to a line of text.
+ * Drifting stars. Each layer travels a whole number of its tiles to the left
+ * per loop, so the loop is seamless: 4px a second for the dust and the band,
+ * 6.4 for the mid layer and 9.6 for the near one.
  */
-.backdrop-drift {
-  position: absolute;
-  inset: 0;
-  -webkit-mask-image: radial-gradient(ellipse 46% 58% at 50% 46%, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.55) 45%, #000 100%);
-  mask-image: radial-gradient(ellipse 46% 58% at 50% 46%, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.55) 45%, #000 100%);
-}
 .backdrop-stars {
   position: absolute;
   top: 0;
   left: 0;
   height: 100%;
 }
+.backdrop-stars-far {
+  width: calc(100% + 960px);
+  background-image: var(--stars-far-a), var(--stars-far-b);
+  background-size: 480px 600px, 320px 440px;
+  animation: backdrop-drift-960 240s steps(7200) infinite;
+}
+.backdrop-stars-band {
+  width: calc(100% + 360px);
+  background: var(--stars-band) 0 0 / 360px 360px;
+  animation: backdrop-drift-360 90s steps(2700) infinite;
+}
 .backdrop-stars-mid {
   width: calc(100% + 640px);
   background: var(--stars-mid) 0 0 / 640px 960px;
-  animation: backdrop-drift-mid 400s steps(4000) infinite;
+  animation: backdrop-drift-640 100s steps(3000) infinite;
 }
 .backdrop-stars-near {
   width: calc(100% + 960px);
   background: var(--stars-near) 0 0 / 960px 1080px;
-  animation: backdrop-drift-near 300s steps(3000) infinite;
+  animation: backdrop-drift-960 100s steps(3000) infinite;
 }
-@keyframes backdrop-drift-mid {
+@keyframes backdrop-drift-360 {
+  to { transform: translate3d(-360px, 0, 0); }
+}
+@keyframes backdrop-drift-640 {
   to { transform: translate3d(-640px, 0, 0); }
 }
-@keyframes backdrop-drift-near {
+@keyframes backdrop-drift-960 {
   to { transform: translate3d(-960px, 0, 0); }
 }
 
-/* Twinkling stars; Backdrop.tsx sets each one's position, period and phase. */
+/* A faint galactic band: denser dust drifting through a diagonal strip of haze. */
+.backdrop-band {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(155deg, transparent 40%, rgba(150, 160, 215, 0.05) 49%, rgba(205, 160, 185, 0.045) 53%, transparent 62%);
+  -webkit-mask-image: linear-gradient(155deg, transparent 32%, #000 46%, #000 56%, transparent 69%);
+  mask-image: linear-gradient(155deg, transparent 32%, #000 46%, #000 56%, transparent 69%);
+}
+
+/* The mid and near layers dim behind the central reading column, so no bright star sits next to a line of text. */
+.backdrop-drift {
+  position: absolute;
+  inset: 0;
+  -webkit-mask-image: radial-gradient(ellipse 46% 58% at 50% 46%, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.55) 45%, #000 100%);
+  mask-image: radial-gradient(ellipse 46% 58% at 50% 46%, rgba(0, 0, 0, 0.4), rgba(0, 0, 0, 0.55) 45%, #000 100%);
+}
+
+/* Twinkling stars, carried by the near layer; Backdrop.tsx sets each one's position, period and phase. */
 .backdrop-glint {
   position: absolute;
   width: 3px;
@@ -123,7 +135,7 @@ body {
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 0 6px 1px rgba(255, 255, 255, 0.45), 0 0 16px 4px rgba(170, 190, 255, 0.12);
-  animation: backdrop-twinkle 6s steps(60) infinite alternate;
+  animation: backdrop-twinkle 120s steps(180) infinite;
 }
 /* Diffraction spikes on the brightest few: two 1px lines through the core. */
 .backdrop-glint-spikes::before,
@@ -145,9 +157,14 @@ body {
   height: 26px;
   background: linear-gradient(180deg, transparent, rgba(255, 255, 255, 0.5), transparent);
 }
+/*
+ * Ten twinkles per cycle: each keyframe step is half a twinkle. A long cycle
+ * keeps the browser from waking the main thread for an iteration event every
+ * few seconds per star.
+ */
 @keyframes backdrop-twinkle {
-  from { opacity: 0.2; transform: scale(0.6); }
-  to { opacity: 1; transform: scale(1); }
+  0%, 10%, 20%, 30%, 40%, 50%, 60%, 70%, 80%, 90%, 100% { opacity: 0.2; transform: scale(0.6); }
+  5%, 15%, 25%, 35%, 45%, 55%, 65%, 75%, 85%, 95% { opacity: 1; transform: scale(1); }
 }
 
 /* Meteors: a faint streak, about a second long, once in a while. */

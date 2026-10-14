@@ -74,13 +74,15 @@ function tile(spec: TileSpec): { uri: string; stars: number } {
   return { uri: `url("data:image/svg+xml,${svg.replace(/</g, '%3C').replace(/>/g, '%3E')}")`, stars: stars.length };
 }
 
+// Every layer drifts: the CSS moves each one by a whole number of tiles per
+// loop, so tile widths divide the layer's travel (960px far, 360px band,
+// 640px mid, 960px near).
 const LAYERS: Record<string, TileSpec> = {
-  // Still dust: two tiles of coprime sizes, so their sum never shows a lattice.
-  'far-a': { w: 433, h: 433, count: 78, seed: 11, minGap: 8, sizes: [[[1, 0.42], 0.5], [[1.2, 0.58], 0.32], [[1.4, 0.75], 0.18]] },
-  'far-b': { w: 577, h: 577, count: 90, seed: 23, minGap: 8, sizes: [[[1, 0.38], 0.55], [[1.2, 0.52], 0.3], [[1.5, 0.7], 0.15]] },
-  // Dense dust for the galactic band (masked to a diagonal strip).
-  band: { w: 311, h: 311, count: 120, seed: 71, minGap: 5, sizes: [[[0.9, 0.4], 0.55], [[1.1, 0.55], 0.33], [[1.3, 0.7], 0.12]] },
-  // Drifting layers: the CSS moves each one tile per loop.
+  // Dust: two tiles of different heights, so their sum never shows a vertical lattice.
+  'far-a': { w: 480, h: 600, count: 120, seed: 11, minGap: 8, sizes: [[[1, 0.42], 0.5], [[1.2, 0.58], 0.32], [[1.4, 0.75], 0.18]] },
+  'far-b': { w: 320, h: 440, count: 38, seed: 23, minGap: 8, sizes: [[[1, 0.38], 0.55], [[1.2, 0.52], 0.3], [[1.5, 0.7], 0.15]] },
+  // Dense dust for the galactic band (shown through a diagonal strip).
+  band: { w: 360, h: 360, count: 160, seed: 71, minGap: 5, sizes: [[[0.9, 0.4], 0.55], [[1.1, 0.55], 0.33], [[1.3, 0.7], 0.12]] },
   mid: { w: 640, h: 960, count: 52, seed: 37, minGap: 22, sizes: [[[1.4, 0.6], 0.45], [[1.7, 0.75], 0.35], [[2, 0.9], 0.2]] },
   near: { w: 960, h: 1080, count: 22, seed: 53, minGap: 60, halo: { w: 7, o: 0.07 }, sizes: [[[2, 0.8], 0.5], [[2.4, 0.9], 0.32], [[2.9, 1], 0.18]] },
 };

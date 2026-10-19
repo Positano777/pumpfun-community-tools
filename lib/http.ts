@@ -38,7 +38,6 @@ export function hostAllowed(origin: string): boolean {
     const host = new URL(origin).hostname;
     return (
       ALLOWED_HOSTS.some((h) => host === h || host.endsWith(`.${h}`)) ||
-      host.endsWith('.workers.dev') ||
       host === 'localhost' ||
       host === '127.0.0.1'
     );

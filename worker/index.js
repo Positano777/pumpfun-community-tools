@@ -15,6 +15,7 @@
 import openNextHandler from '../.open-next/worker.js';
 
 const CANONICAL_HOST = 'rughawk.xyz';
+const LOCAL_HOSTS = new Set(['localhost', '127.0.0.1', '[::1]']);
 
 const RL_BUCKETS = [
   { prefix: '/api/scan', binding: 'RL_SCAN', label: 'scan' },
@@ -57,9 +58,11 @@ async function rateLimited(request, env, pathname) {
 export default {
   async fetch(request, env, ctx) {
     const url = new URL(request.url);
-    // www is an alias: one canonical host for shares, metadata and the origin allowlist.
-    if (url.hostname === `www.${CANONICAL_HOST}`) {
+    // One public host. www, the workers.dev subdomain and preview URLs all
+    // land on it, so no other hostname is ever shown; local dev is exempt.
+    if (url.hostname !== CANONICAL_HOST && !LOCAL_HOSTS.has(url.hostname)) {
       url.hostname = CANONICAL_HOST;
+      url.port = '';
       return Response.redirect(url.toString(), 301);
     }
     const { pathname } = url;

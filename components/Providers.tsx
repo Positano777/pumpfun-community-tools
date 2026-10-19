@@ -3,6 +3,7 @@
 import { useMemo, type ReactNode } from 'react';
 import { ConnectionProvider, WalletProvider } from '@solana/wallet-adapter-react';
 import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
+import { NoWalletDialog } from './NoWalletDialog';
 
 /**
  * Wallets (Phantom, Solflare, Backpack, ...) register through the Wallet
@@ -13,12 +14,15 @@ import { WalletModalProvider } from '@solana/wallet-adapter-react-ui';
 export function Providers({ children }: { children: ReactNode }) {
   const endpoint = useMemo(() => {
     if (typeof window !== 'undefined') return `${window.location.origin}/api/rpc`;
-    return `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://rughawk.com'}/api/rpc`;
+    return `${process.env.NEXT_PUBLIC_APP_URL ?? 'https://rughawk.xyz'}/api/rpc`;
   }, []);
   return (
     <ConnectionProvider endpoint={endpoint} config={{ commitment: 'confirmed' }}>
       <WalletProvider wallets={[]} autoConnect>
-        <WalletModalProvider>{children}</WalletModalProvider>
+        <WalletModalProvider>
+          <NoWalletDialog />
+          {children}
+        </WalletModalProvider>
       </WalletProvider>
     </ConnectionProvider>
   );

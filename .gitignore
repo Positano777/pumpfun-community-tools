@@ -23,3 +23,6 @@ cloudflare-env.d.ts
 *.log
 wrangler.test.jsonc
 !.dev.vars.example
+
+# standalone build scratch
+.evidence-build/

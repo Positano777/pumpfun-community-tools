@@ -1,0 +1,9 @@
+{
+  "name": "@positano777/launch-evidence-preview",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "license": "MIT",
+  "engines": { "node": ">=22" },
+  "scripts": { "export": "node cli.mjs" }
+}

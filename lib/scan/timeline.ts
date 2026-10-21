@@ -43,8 +43,8 @@ export function launchTimeline(l: LaunchForensics): TimelineEvent[] {
   if (l.bundled.wallets.length) {
     events.push({
       at: 0,
-      label: `${plural(l.bundled.wallets.length, 'wallet')} bought in the launch block`,
-      detail: `${pctText(l.bundled.pctOfSupply)} of supply taken before the public could see the token${l.bundled.txCount > 1 ? `, across ${plural(l.bundled.txCount, 'transaction')}` : ''}.`,
+      label: `${plural(l.bundled.wallets.length, 'wallet')} gained tokens in the launch block`,
+      detail: `${pctText(l.bundled.pctOfSupply)} of supply in summed positive token deltas (not necessarily distinct holdings)${l.bundled.txCount > 1 ? `, across ${plural(l.bundled.txCount, 'transaction')}` : ''}. Transfers may be included; coordination and bundle membership are unverified.`,
       tone: 'signal',
     });
   }

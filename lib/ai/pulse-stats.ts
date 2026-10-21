@@ -6,7 +6,7 @@
 import type { FeedRow } from '../db';
 
 export const PULSE_PATTERNS = {
-  bundled: /bought in the launch block/i,
+  bundled: /(?:bought|gained tokens) in the launch block/i,
   spray: /sprayed dust/i,
   devExit: /Deployer (dumped|sold)|Heavy selling/i,
   serial: /minted \d+ other token|Same deployer behind/i,
@@ -21,7 +21,7 @@ export const PULSE_PATTERNS = {
 export type PatternKey = keyof typeof PULSE_PATTERNS;
 
 export const PATTERN_LABELS: Record<PatternKey, string> = {
-  bundled: 'bundled launches',
+  bundled: 'launch-slot token gains',
   spray: 'fake-holder sprays',
   devExit: 'deployer exits',
   serial: 'serial launchers',

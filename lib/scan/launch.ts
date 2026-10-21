@@ -27,7 +27,7 @@ import { associatedTokenAddress, base64ToBytes, bytesToAddress, isAddress } from
  * state (the pump.fun bonding curve stores it; metadata authorities and
  * creators are fallbacks) and the creation is located in the creator's much
  * shorter history, near the time DexScreener first saw the pair. Same-block
- * bundles are then read from the creation block itself.
+ * token gains are read from the creation block itself; bundle membership is unverified.
  */
 export interface LaunchInput {
   mint: string;
@@ -260,7 +260,7 @@ async function finish(
   const devInitial = deployer ? ownerDelta(creationTx, input.mint, deployer).post : 0;
   const devInitialPct = input.uiSupply > 0 ? (devInitial / input.uiSupply) * 100 : null;
 
-  // Same-block buyers (bundle detection).
+  // Same-slot fee-payer token gains. Transfers can also increase a balance; this does not establish a purchase or bundle.
   const bundleWallets = new Map<string, number>();
   let bundleTx = 0;
   for (const tx of earlyTxs) {
@@ -561,20 +561,20 @@ export function launchFindings(l: LaunchForensics, now: number): Finding[] {
       id: 'BUNDLED_LAUNCH',
       severity: crit ? 'critical' : 'high',
       category: 'launch',
-      title: `${plural(n, 'wallet')} bought in the launch block (${l.bundled.pctOfSupply.toFixed(2)}% of supply)`,
-      detail: 'Buys that land in the same block as the token creation are bundled with the deployer or are snipers with insider timing. They hold supply bought before the public could.',
+      title: `${plural(n, 'wallet')} gained tokens in the launch block (${l.bundled.pctOfSupply.toFixed(2)}% of supply)`,
+      detail: 'These fee-payer wallets had positive token balance deltas in inspected launch-slot transactions. This can include transfers. Same-slot activity does not prove purchases, common control, insider access, or Jito bundle membership. The reported share sums observed gains; it is not necessarily unique supply held.',
       weight: crit ? 45 : 25,
-      evidence: l.bundled.wallets.slice(0, 5).map((w) => ({ label: 'Bundled wallet', value: w, href: `/wallet/${w}` })),
+      evidence: l.bundled.wallets.slice(0, 5).map((w) => ({ label: 'Launch-slot wallet', value: w, href: `/wallet/${w}` })),
     });
   } else if (n > 0) {
     findings.push({
       id: 'LAUNCH_SNIPERS',
       severity: 'medium',
       category: 'launch',
-      title: `${plural(n, 'wallet')} sniped the launch block`,
-      detail: 'Same-block buyers had the transaction before the public saw the token.',
+      title: `${plural(n, 'wallet')} gained tokens in the launch block`,
+      detail: 'Positive token balance deltas were observed for these fee payers in the creation slot. Purchases, coordination, and bundle membership are unverified; token transfers can also produce gains.',
       weight: 8,
-      evidence: l.bundled.wallets.map((w) => ({ label: 'Sniper', value: w, href: `/wallet/${w}` })),
+      evidence: l.bundled.wallets.map((w) => ({ label: 'Launch-slot wallet', value: w, href: `/wallet/${w}` })),
     });
   }
 

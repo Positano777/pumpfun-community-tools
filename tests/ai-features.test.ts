@@ -196,7 +196,7 @@ test('timeline: creation and launch-block buys lead, the bag moves follow by tim
   const t = launchTimeline(launch);
   assert.deepEqual(t.map((e) => e.label), [
     'Token created on pump.fun',
-    '3 wallets bought in the launch block',
+    '3 wallets gained tokens in the launch block',
     'Deployer sold 1.9% of supply',
     'Deployer locked 26% in Streamflow',
     'Deployer moved 4.5% to 2 wallets',

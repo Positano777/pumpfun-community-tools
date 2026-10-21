@@ -108,6 +108,7 @@ export interface LaunchForensics {
   launchpad: string | null;
   deployer: string | null;
   devInitialPct: number | null;
+  /** Legacy field: sampled creation-slot fee-payer token gains, not verified purchases or Jito bundles. */
   bundled: { wallets: string[]; pctOfSupply: number; txCount: number };
   devSells: { signature: string; secondsAfterLaunch: number | null; pctOfSupply: number }[];
   /** Deployer outflows that were not sales (no trading venue, no SOL back): tokens sent to other wallets. */

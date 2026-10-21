@@ -112,8 +112,8 @@ export async function scanToken(ctx: ScanContext, mint: string): Promise<TokenRe
     const stillPct = still.reduce((s, h) => s + h.pct, 0);
     bundleFinding.detail +=
       still.length === 0
-        ? ' None of them is among the top holders any more: they already sold into later buyers.'
-        : ` ${still.length} still hold ${stillPct.toFixed(2)}% of supply and can dump at any moment.`;
+        ? ' None appears in the returned top-holder sample. This does not establish whether they sold, transferred, or retain smaller balances.'
+        : ` ${still.length} appear in the returned top-holder sample with ${stillPct.toFixed(2)}% of supply. This sample does not establish the full group balance or intent.`;
   }
 
   const onCurve = Boolean(launch?.launchpad && Object.values(KNOWN_PROGRAMS).some((p) => p.kind === 'launchpad' && p.name === launch.launchpad));

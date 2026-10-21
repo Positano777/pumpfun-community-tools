@@ -1,0 +1,22 @@
+{
+  "kind": "token",
+  "mint": "SYNTHETIC_NOT_A_REAL_MINT",
+  "scannedAt": 1792540800000,
+  "partial": ["Synthetic fixture, not a real blockchain scan"],
+  "launch": {
+    "reached": true,
+    "signaturesScanned": 3,
+    "creationSignature": "SYNTHETIC_CREATION",
+    "createdAt": 1792540700,
+    "slot": 123,
+    "launchpad": "pump.fun",
+    "deployer": "SYNTHETIC_FEE_PAYER",
+    "devInitialPct": 5,
+    "devCurrentPct": 0,
+    "bundled": {"wallets": ["SYNTHETIC_WALLET_A"], "pctOfSupply": 2, "txCount": 1},
+    "devSells": [],
+    "devTransfers": [{"signature": "SYNTHETIC_TRANSFER", "secondsAfterLaunch": 30, "pctOfSupply": 5, "recipients": 1}],
+    "devLocks": [],
+    "devBurns": []
+  }
+}

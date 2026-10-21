@@ -15,7 +15,8 @@
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
     "scan": "tsx scripts/scan-cli.ts",
-    "study": "tsx scripts/dev-exit-study.ts"
+    "study": "tsx scripts/dev-exit-study.ts",
+    "evidence": "tsx scripts/launch-evidence-cli.ts"
   },
   "dependencies": {
     "@opennextjs/cloudflare": "1.20.2",

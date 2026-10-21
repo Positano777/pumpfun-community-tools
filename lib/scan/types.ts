@@ -99,6 +99,15 @@ export interface FundingHop {
   note?: string;
 }
 
+export interface LaunchBlockCoverage {
+  status: 'complete' | 'incomplete' | 'unavailable';
+  slot: number;
+  source: 'getBlock';
+  relevantTransactions: number | null;
+  inspectedTransactions: number;
+  reasons: string[];
+}
+
 export interface LaunchForensics {
   reached: boolean;
   signaturesScanned: number;
@@ -110,6 +119,9 @@ export interface LaunchForensics {
   devInitialPct: number | null;
   /** Legacy field: sampled creation-slot fee-payer token gains, not verified purchases or Jito bundles. */
   bundled: { wallets: string[]; pctOfSupply: number; txCount: number };
+  /** Optional for older saved reports; exact-slot provider-response coverage. */
+  blockCoverage?: LaunchBlockCoverage;
+  launchSlotEvidence?: { signature: string; wallet: string; positiveDeltaPctOfSupply: number }[];
   devSells: { signature: string; secondsAfterLaunch: number | null; pctOfSupply: number }[];
   /** Deployer outflows that were not sales (no trading venue, no SOL back): tokens sent to other wallets. */
   devTransfers: { signature: string; secondsAfterLaunch: number | null; pctOfSupply: number; recipients: number }[];

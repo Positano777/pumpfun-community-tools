@@ -1,0 +1,4 @@
+# Exact inherited false positive: literal abbreviated rh_live_... documentation example.
+9cc9248752a975e9fe1b1c44a0e8cdbf79fa0202:components/AccountView.tsx:curl-auth-header:228
+# Exact inherited false positive: public Stripe Price ID, not a secret API credential.
+9cc9248752a975e9fe1b1c44a0e8cdbf79fa0202:wrangler.jsonc:generic-api-key:93

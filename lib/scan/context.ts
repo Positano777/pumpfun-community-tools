@@ -57,8 +57,9 @@ export async function cached<T>(ctx: ScanContext, key: string, ttlSeconds: numbe
 export async function guarded<T>(partial: string[], name: string, fn: () => Promise<T>, fallback: T): Promise<T> {
   try {
     return await fn();
-  } catch (e) {
-    partial.push(`${name}: ${e instanceof Error ? e.message.slice(0, 120) : 'failed'}`);
+  } catch {
+    // Partial scan warnings reach public reports. Provider errors can contain credentials.
+    partial.push(`${name}: unavailable`);
     return fallback;
   }
 }

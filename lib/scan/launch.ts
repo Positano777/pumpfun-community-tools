@@ -5,6 +5,7 @@ import type { ParsedInstruction, ParsedTx, SignatureInfo, TokenBalance } from '.
 import { allInstructions, feePayer, programsInvoked } from '../rpc';
 import { KNOWN_PROGRAMS, TOKEN_2022_PROGRAM, TOKEN_PROGRAM, WSOL_MINT } from '../solana/known';
 import { pctText, plural } from '../format';
+import { readLaunchBlock, type LaunchBlockSample } from './launch-block';
 import { associatedTokenAddress, base64ToBytes, bytesToAddress, isAddress } from '../solana/address';
 
 /**
@@ -92,10 +93,10 @@ export async function analyzeLaunch(ctx: ScanContext, input: LaunchInput, hints:
     const chronological = [...first.sigs].reverse();
     const creationSig = chronological.find((s) => !s.err) ?? chronological[0];
     const creationTx = await ctx.rpc.getTransaction(creationSig.signature, creationSig.slot);
-    if (!creationTx) return { launch: emptyLaunch(first.sigs.length), findings: [] };
-    const early = chronological.filter((s) => s.signature !== creationSig.signature && !s.err && s.slot <= creationTx.slot + 1).slice(0, 15);
-    const earlyTxs = early.length ? await ctx.rpc.getTransactions(early, 4) : [];
-    return finish(ctx, input, creationSig.signature, creationTx, earlyTxs, first.sigs);
+    if (creationTx && createsMint(creationTx, input.mint)) {
+      const block = await readLaunchBlock(ctx, input.mint, creationTx.slot, creationSig.signature);
+      return finish(ctx, input, creationSig.signature, creationTx, block, first.sigs);
+    }
   }
 
   // Hot path: locate the creation through the creator's own history.
@@ -111,7 +112,7 @@ export async function analyzeLaunch(ctx: ScanContext, input: LaunchInput, hints:
     tried.add(candidate);
     const { found, sigs } = await findCreation(ctx, input.mint, candidate, h.approxTime);
     if (found) {
-      const blockTxs = await creationBlockBuyers(ctx, input.mint, found.tx.slot, found.signature);
+      const blockTxs = await readLaunchBlock(ctx, input.mint, found.tx.slot, found.signature);
       // The candidate's history doubles as the deployer's only when it paid for the creation.
       return finish(ctx, input, found.signature, found.tx, blockTxs, null, feePayer(found.tx) === candidate ? found.creatorSigs : undefined);
     }
@@ -134,7 +135,7 @@ export async function analyzeLaunch(ctx: ScanContext, input: LaunchInput, hints:
       const creationSig = chronological.find((s) => !s.err) ?? chronological[0];
       const creationTx = await ctx.rpc.getTransaction(creationSig.signature, creationSig.slot);
       if (creationTx && createsMint(creationTx, input.mint)) {
-        const blockTxs = await creationBlockBuyers(ctx, input.mint, creationTx.slot, creationSig.signature);
+        const blockTxs = await readLaunchBlock(ctx, input.mint, creationTx.slot, creationSig.signature);
         return finish(ctx, input, creationSig.signature, creationTx, blockTxs, null);
       }
     }
@@ -148,10 +149,9 @@ export async function analyzeLaunch(ctx: ScanContext, input: LaunchInput, hints:
       const chronological = [...all].reverse();
       const creationSig = chronological.find((s) => !s.err) ?? chronological[0];
       const creationTx = await ctx.rpc.getTransaction(creationSig.signature, creationSig.slot);
-      if (creationTx) {
-        const early = chronological.filter((s) => s.signature !== creationSig.signature && !s.err && s.slot <= creationTx.slot + 1).slice(0, 15);
-        const earlyTxs = early.length ? await ctx.rpc.getTransactions(early, 4) : [];
-        return finish(ctx, input, creationSig.signature, creationTx, earlyTxs, all);
+      if (creationTx && createsMint(creationTx, input.mint)) {
+        const block = await readLaunchBlock(ctx, input.mint, creationTx.slot, creationSig.signature);
+        return finish(ctx, input, creationSig.signature, creationTx, block, all);
       }
     }
   }
@@ -219,36 +219,12 @@ async function findCreation(
   return { found: i >= 0 ? { signature: probe[i].signature, tx: txs[i]!, creatorSigs: sigs } : null, sigs };
 }
 
-/**
- * Buyers in the creation block, read from the block itself (account-level
- * detail carries pre/post token balances without instruction payloads).
- */
-async function creationBlockBuyers(ctx: ScanContext, mint: string, slot: number, creationSig: string): Promise<ParsedTx[]> {
-  try {
-    const block = await ctx.rpc.call<{
-      blockTime: number | null;
-      transactions: { transaction: { signatures: string[]; accountKeys: { pubkey: string; signer: boolean }[] }; meta: ParsedTx['meta'] }[];
-    }>('getBlock', [slot, { encoding: 'jsonParsed', transactionDetails: 'accounts', maxSupportedTransactionVersion: 1, rewards: false, commitment: 'confirmed' }]);
-    return block.transactions
-      .filter((t) => !t.meta?.err && t.transaction.signatures[0] !== creationSig && t.transaction.accountKeys.some((k) => k.pubkey === mint))
-      .slice(0, 40)
-      .map((t) => ({
-        slot,
-        blockTime: block.blockTime,
-        meta: t.meta,
-        transaction: { signatures: t.transaction.signatures, message: { accountKeys: t.transaction.accountKeys.map((k) => ({ ...k, writable: false })), instructions: [] } },
-      }));
-  } catch {
-    return [];
-  }
-}
-
 async function finish(
   ctx: ScanContext,
   input: LaunchInput,
   creationSignature: string,
   creationTx: ParsedTx,
-  earlyTxs: (ParsedTx | null)[],
+  block: LaunchBlockSample,
   mintSigs: SignatureInfo[] | null,
   creatorSigs?: SignatureInfo[],
 ): Promise<LaunchResult> {
@@ -262,15 +238,17 @@ async function finish(
 
   // Same-slot fee-payer token gains. Transfers can also increase a balance; this does not establish a purchase or bundle.
   const bundleWallets = new Map<string, number>();
+  const launchSlotEvidence: NonNullable<LaunchForensics['launchSlotEvidence']> = [];
   let bundleTx = 0;
-  for (const tx of earlyTxs) {
-    if (!tx) continue;
+  for (const tx of block.transactions) {
+    if (!tx || tx.slot !== creationTx.slot || tx.meta?.err) continue;
     const payer = feePayer(tx);
     if (!payer || payer === deployer) continue;
     const d = ownerDelta(tx, input.mint, payer);
     if (d.delta > 0) {
       bundleTx++;
       bundleWallets.set(payer, (bundleWallets.get(payer) ?? 0) + d.delta);
+      launchSlotEvidence.push({ signature: tx.transaction.signatures[0], wallet: payer, positiveDeltaPctOfSupply: input.uiSupply > 0 ? round((d.delta / input.uiSupply) * 100) : 0 });
     }
   }
   const bundledUi = [...bundleWallets.values()].reduce((a, b) => a + b, 0);
@@ -344,6 +322,8 @@ async function finish(
       pctOfSupply: round(input.uiSupply > 0 ? (bundledUi / input.uiSupply) * 100 : 0),
       txCount: bundleTx,
     },
+    blockCoverage: block.coverage,
+    launchSlotEvidence,
     devSells,
     devTransfers,
     devLocks,
@@ -450,6 +430,13 @@ function emptyLaunch(scanned: number): LaunchForensics {
 
 export function launchFindings(l: LaunchForensics, now: number): Finding[] {
   const findings: Finding[] = [];
+  if (l.blockCoverage && l.blockCoverage.status !== 'complete') {
+    findings.push({
+      id: 'LAUNCH_BLOCK_INCOMPLETE', severity: 'medium', category: 'launch', weight: 12,
+      title: 'Launch-block coverage is incomplete',
+      detail: `The provider response could not establish all relevant launch-slot activity (${l.blockCoverage.reasons.join(', ')}). No observed gains must not be interpreted as no activity.`,
+    });
+  }
   const total = (xs: { pctOfSupply: number }[]) => xs.reduce((s, x) => s + x.pctOfSupply, 0);
   const at = (xs: { secondsAfterLaunch: number | null }[]) => {
     const first = xs.find((x) => x.secondsAfterLaunch !== null);

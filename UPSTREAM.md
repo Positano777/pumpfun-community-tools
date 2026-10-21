@@ -7,3 +7,5 @@ The original MIT license and copyright remain in LICENSE. Original documentation
 Initial changes: evidence-qualified launch finding and timeline copy; top-holder absence no longer described as proof of sale; portable offline launch-evidence JSON export; regression coverage; inherited production workflows disabled on this fork.
 
 Legacy finding IDs, field names, scoring weights, and upstream detection heuristics remain for compatibility. The rest of the inherited product still requires review and may use stronger language. This first release is an evidence-export developer preview, not a validated new trading or detection system.
+
+Second preview changes: exact-slot block reads on all creation paths, explicit provider-response coverage and transaction observation links, redacted diagnostic policy, and secret-scanning configuration. Detector coverage is more explicit; purchase attribution and full outflow coverage still rely on upstream heuristics and need further validation.

@@ -25,3 +25,13 @@ test('invalid JSON fails and an existing destination is never overwritten', () =
   assert.equal(spawnSync(process.execPath, [cli, fixture, destination]).status, 1);
   assert.equal(readFileSync(destination, 'utf8'), 'preserve me');
 });
+
+test('JSON syntax errors do not echo malformed input contents', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'launch-evidence-json-'));
+  const invalid = join(dir, 'invalid.json');
+  writeFileSync(invalid, 'synthetic-sensitive-value is not JSON');
+  const out = spawnSync(process.execPath, [cli, invalid], {encoding: 'utf8'});
+  assert.equal(out.status, 1);
+  assert.ok(!out.stderr.includes('synthetic-sensitive-value'));
+  assert.match(out.stderr, /Invalid scan JSON/);
+});

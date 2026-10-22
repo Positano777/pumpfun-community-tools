@@ -39,4 +39,12 @@ Evidence: [creation validation and exact-slot read](https://github.com/Positano7
 
 See each repository's SECURITY.md for the redacted scan command and the scope of its security claims.
 
+## Transaction receipt preview, 2026-10-22
+
+The complete tracked/proposed source snapshot was scanned using gitleaks 8.30.1 with the existing contextual signing-key and recovery-phrase rules. Only the two previously reviewed inherited examples above matched; no additional credential match was found. The new broader-crypto catalog snapshot had zero matches. This is not proof of absence or a dependency audit.
+
+The receipt exports explicit fields and fixed errors, omitting raw logs, provider messages, arbitrary extensions, and RPC endpoints. Live reads use HTTPS (or local loopback HTTP), no redirects, a 20-second timeout, a 5 MB streamed response limit, and a signature consistency check. The offline viewer uses no network connections, storage, wallet APIs, or signing code. Its inline bundle has an exact script hash policy; static HTML exports contain no scripts. Both treat the input as unverified evidence. Token ownership and unsupported movements remain explicit limitations.
+
+37 receipt tests and three existing standalone evidence tests pass. Full-app tests/typecheck remain blocked by missing app dependencies. Isolated Chrome smoke checks passed for example, upload, validation, downloads, and responsive layout via a temporary localhost server. Direct file navigation was blocked by the automation tool. Vendored MIT licenses and a pinned source/bundle hash are included. No dependency installation hooks were executed during decoder review.
+
 Current-source snapshots were also scanned. They produced the same two reviewed inherited false positives and no additional match. All three added contextual signing-key/recovery-phrase rules detected their deliberately invalid synthetic canaries. Test results: 90 isolated TypeScript tests, three standalone evidence CLI tests, and twelve IDL checker tests passed. Strict scoped TypeScript checking and the 44-record catalog consistency check passed.

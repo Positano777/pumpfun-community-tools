@@ -1,5 +1,16 @@
 # Developer preview validation
 
+## Transaction receipt preview, 2026-10-22
+
+- 37 standalone receipt tests pass under Node.js 22.18.0. Cases include failed transaction rollback, sponsored fee payer, no double-counting of priority fees, CPI transfers, strict instruction layout, v0 loaded addresses, large integers, incomplete owner metadata, unknown refunds, RPC limits/signature mismatch, redaction, output overwrite protection, HTML escaping, viewer CSP hash, and vendored bundle hash.
+- All three existing standalone launch-evidence integration tests also pass (40 standalone checks total).
+- A read-only mainnet getTransaction call succeeded for signature `3DsFpAxFbw8rHXRK6jyT69PZQfnJhV74pBP1JmEV4tjb3caBKMnh6PJw3qgrvmB7f9FFW92f8kMNwWWG1auiF4cr`, wallet `2CRb7yxm69SGkxXkKsyfUir9Cjh8aWNQmpBDNYXDmaFC`, slot 455522726. The reported -20,725,000 lamport wallet change reconciled to a 10,000 lamport network fee and six supported funding/transfer flows, with zero residual. Twelve unsupported instructions keep semantic attribution partial. This is a provider smoke test of an upstream public example, not independent verification, a swap-accuracy benchmark, or a transaction sent by this project.
+- The offline viewer bundles successfully. Its exact inline-script CSP hash and lack of external asset tags are checked. After initial browser launch failures, isolated Chrome checks passed using a temporary localhost server: synthetic example values, invalid-address handling, fixture file upload, JSON/HTML downloads, desktop/mobile screenshots, no horizontal overflow at 390px, and no console errors. The automation tool blocks direct `file:` navigation, so double-click opening was not automated. No hosted application was deployed.
+- The new receipt runtime needs no npm installation. The inherited full application's dependency/build limitations below still apply. The scan engine source was not changed by this preview.
+- Root `npm test` and `npm run typecheck` were attempted again on 2026-10-22; both stop because the incomplete app install has no `tsx`/`tsc` executable. This is separate from the passing standalone checks, not a passing full-app validation.
+
+Reproduce: `node --test receipt/receipt.test.mjs evidence/cli.test.mjs`. Read [receipt coverage](receipt/README.md) before sharing results.
+
 Checked 2026-10-21.
 
 - All 90 TypeScript tests passed in an isolated copy of the modified source, using tsx 4.23.12, TypeScript 5.9.3, @solana/web3.js 1.98.4 and Node types 20.19.43. This includes twelve new evidence/attribution/block-coverage regression cases.

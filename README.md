@@ -8,6 +8,7 @@ Open-source tools for inspecting Solana launches and sharing reproducible eviden
 
 ## Available now
 
+- **[Where did my SOL go?](receipt/README.md)**: standalone transaction receipts, offline browser viewer, supported native flows, token changes, network fee, and explicit unexplained amounts. No signing or wallet connection.
 - Launch findings distinguish observed token gains from unverified purchases, coordination, and bundle membership.
 - Top-holder absence is no longer presented as proof of a sale.
 - Offline launch-evidence export from a saved token scan, with explicit coverage limits and source transaction links.
@@ -27,6 +28,8 @@ Open-source tools for inspecting Solana launches and sharing reproducible eviden
 ![Saved scan, coverage check, and qualified evidence JSON](docs/assets/evidence-workflow.png)
 
 ## Try the export
+
+For the new receipt tool, [download the offline viewer](receipt/viewer.html) or follow the [CLI examples](receipt/README.md#command-line). It needs no npm install. The receipt is a preview with partial instruction attribution, not full trading PnL.
 
 Requires Node.js 22 or later. The standalone command has **zero package dependencies**; no install is needed.
 

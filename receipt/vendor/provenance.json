@@ -1,0 +1,16 @@
+{
+  "source": "https://github.com/VTX-Labs/solana-explain",
+  "revision": "411a5f1aee7a7115f5bf739fcd5455f27a9ce591",
+  "license": "MIT",
+  "exports": [
+    "systemDecoder",
+    "decodeBase58",
+    "encodeBase58"
+  ],
+  "bundler": "esbuild 0.28.2",
+  "dependencies": {
+    "bs58": "6.0.0",
+    "base-x": "5.0.1"
+  },
+  "sha256": "488964259f7936f88841197c4d1d29c3782e2870e556a03d892be33efd08a222"
+}

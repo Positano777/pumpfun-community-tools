@@ -1,0 +1,18 @@
+import { readFile,writeFile,copyFile,mkdir } from 'node:fs/promises';
+import { execFileSync } from 'node:child_process';
+import { resolve } from 'node:path';
+import { fileURLToPath,pathToFileURL } from 'node:url';
+import { createHash } from 'node:crypto';
+const root=fileURLToPath(new URL('../',import.meta.url));
+const source=resolve(process.argv[2] ?? '');
+const revision='411a5f1aee7a7115f5bf739fcd5455f27a9ce591';
+if(!process.argv[2] || execFileSync('git',['-C',source,'rev-parse','HEAD'],{encoding:'utf8'}).trim()!==revision) throw Error('Supply a checkout of the pinned VTX Labs revision.');
+for(const [name,version] of [['bs58','6.0.0'],['base-x','5.0.1']]) if(JSON.parse(await readFile(source+'/node_modules/'+name+'/package.json','utf8')).version!==version) throw Error('Dependency version differs from reviewed snapshot.');
+const esbuild=process.argv[3] ? await import(pathToFileURL(resolve(process.argv[3])).href) : await import('esbuild');
+if(esbuild.version!=='0.28.2') throw Error('Use esbuild 0.28.2 for reproducibility.');
+const dest=root+'receipt/vendor';await mkdir(dest,{recursive:true});
+await copyFile(dest+'/entry.ts',source+'/receipt-entry.ts');
+await esbuild.build({absWorkingDir:source,entryPoints:[source+'/receipt-entry.ts'],outfile:dest+'/decoders.mjs',bundle:true,format:'esm',platform:'browser',target:'es2022',legalComments:'inline'});
+for(const [from,to] of [['LICENSE','VTX-Labs-LICENSE'],['node_modules/bs58/LICENSE','bs58-LICENSE'],['node_modules/base-x/LICENSE.md','base-x-LICENSE']]) await copyFile(source+'/'+from,dest+'/'+to);
+const hash=createHash('sha256').update(await readFile(dest+'/decoders.mjs')).digest('hex');
+await writeFile(dest+'/provenance.json',JSON.stringify({source:'https://github.com/VTX-Labs/solana-explain',revision,license:'MIT',exports:['systemDecoder','decodeBase58','encodeBase58'],bundler:'esbuild 0.28.2',dependencies:{bs58:'6.0.0','base-x':'5.0.1'},sha256:hash},null,2)+'\n');

@@ -1,0 +1,3 @@
+# Keep generated source hashes and inline-script CSP stable on Windows checkouts.
+receipt/** text eol=lf
+scripts/build-receipt-*.mjs text eol=lf
